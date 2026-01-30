@@ -1,0 +1,266 @@
+{{define "layout"}}
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none;  scrollbar-width: none; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="min-h-screen bg-gray-50 text-slate-800 antialiased selection:bg-primary-100 selection:text-primary-900">
+
+  <!-- ✅ 统一控制页面块间距 -->
+  <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- ✅ 顶部 Header 卡片：更紧凑，不会空一大块 -->
+    <div class="rounded-3xl bg-white border border-gray-100 shadow-xl shadow-gray-200/50 px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">
+            {{.Title}}
+          </h1>
+          {{if .Username}}
+            <p class="text-xs text-slate-500 mt-1">当前用户：<span class="font-semibold text-slate-700">{{.Username}}</span></p>
+          {{end}}
+        </div>
+        <form method="post" action="/logout">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="text-xs font-semibold text-slate-500 hover:text-slate-700 border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:bg-gray-50 transition-colors">
+            退出登录
+          </button>
+        </form>
+      </div>
+
+      <!-- Flash：有才显示，没消息不占高度 -->
+      {{if or .Flash.Success .Flash.Error .Flash.Warn .Flash.Info}}
+      <div class="space-y-2 mt-3">
+        {{if .Flash.Success}}
+          <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-800 backdrop-blur-sm animate-fade-in-down">
+            <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            {{.Flash.Success}}
+          </div>
+        {{end}}
+
+        {{if .Flash.Error}}
+          <div class="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-800 backdrop-blur-sm animate-fade-in-down">
+            <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{.Flash.Error}}
+          </div>
+        {{end}}
+
+        {{if .Flash.Warn}}
+          <div class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 backdrop-blur-sm animate-fade-in-down">
+            <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            {{.Flash.Warn}}
+          </div>
+        {{end}}
+
+        {{if .Flash.Info}}
+          <div class="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-3 text-sm text-sky-700 backdrop-blur-sm animate-fade-in-down">
+            <svg class="w-5 h-5 text-sky-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{.Flash.Info}}
+          </div>
+        {{end}}
+      </div>
+      {{end}}
+    </div>
+
+    <!-- 主体 -->
+    <div class="grid grid-cols-12 gap-8">
+      <div class="col-span-12 lg:col-span-4 space-y-6">
+        <div class="sticky top-6">
+          <div class="rounded-2xl bg-white border border-gray-200 shadow-lg shadow-gray-200/40 p-6">
+            <div class="flex items-center justify-between mb-5">
+              <div class="flex items-center gap-2 text-slate-800 font-bold">
+                <span class="p-1.5 rounded-lg bg-primary-100 text-primary-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                </span>
+                凭证配置
+              </div>
+              <span class="text-[10px] font-medium bg-gray-100 text-gray-500 px-2 py-1 rounded-full border border-gray-200">SQL Storage</span>
+            </div>
+
+            <form method="post" action="/auth/save" class="space-y-4">
+              <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+              <input type="hidden" name="key_id" value="{{.PendingKey}}">
+              <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1.5 ml-1">密钥名称</label>
+                <input name="key_name" placeholder="例如：主账号 / 香港节点"
+                       class="block w-full rounded-xl border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm transition-all focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none placeholder:text-gray-400"
+                       value="{{.KeyName}}">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1.5 ml-1">Access Key</label>
+                <input name="ak" placeholder="AKIA..."
+                       class="block w-full rounded-xl border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm transition-all focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none placeholder:text-gray-400"
+                       value="{{.AK}}">
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1.5 ml-1">Secret Key</label>
+                <input name="sk" placeholder="••••••••" type="password"
+                       class="block w-full rounded-xl border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm transition-all focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none placeholder:text-gray-400">
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1.5 ml-1">Proxy (可选)</label>
+                <div class="relative">
+                  <input name="proxy" placeholder="http://user:pass@ip:port"
+                         class="block w-full rounded-xl border-gray-200 bg-gray-50/50 pl-4 pr-20 py-2.5 text-sm transition-all focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none placeholder:text-gray-400"
+                         value="{{.Proxy}}">
+                  <button type="button" id="proxyCheckBtn"
+                          class="absolute right-1.5 top-1.5 bottom-1.5 rounded-lg bg-white border border-gray-200 px-3 text-xs font-semibold text-slate-600 hover:text-primary-600 hover:border-primary-200 hover:bg-primary-50 transition-colors">
+                    检查
+                  </button>
+                </div>
+              </div>
+
+              <div id="proxyCheckResult" class="hidden text-xs rounded-xl p-3"></div>
+
+              <div class="grid gap-2 sm:grid-cols-2">
+                <button name="mode" value="create" class="w-full rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/20 py-3 text-sm font-semibold hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                  保存为新密钥
+                </button>
+                <button name="mode" value="update" class="w-full rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm py-3 text-sm font-semibold hover:border-primary-200 hover:text-primary-600 hover:bg-primary-50 transition-all">
+                  更新当前密钥
+                </button>
+              </div>
+
+              <div class="flex items-start gap-2 px-1">
+                {{if .HasCreds}}
+                  <span class="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100 shrink-0">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 已保存
+                  </span>
+                {{end}}
+                <div class="text-[11px] leading-relaxed text-slate-400 flex-1 text-right">
+                  支持更新选中的密钥；SK 保存后不回显。
+                </div>
+              </div>
+            </form>
+
+            {{if .Keys}}
+              <div class="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                <div class="rounded-xl border border-emerald-100 bg-emerald-50/80 px-3 py-2 text-[11px] text-emerald-700">
+                  当前使用：<span class="font-semibold">{{if .ActiveKey}}{{.ActiveKey}}{{else}}未启用{{end}}</span>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1.5 ml-1">切换密钥</label>
+                  <form method="post" action="/auth/select" class="flex gap-2">
+                    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                    <select name="key_id" class="flex-1 rounded-xl border-gray-200 bg-gray-50/50 px-3 py-2 text-xs font-medium focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none transition-all">
+                      {{range .Keys}}
+                        <option value="{{.ID}}" {{if eq .ID $.PendingKey}}selected{{end}}>{{.Name}}</option>
+                      {{end}}
+                    </select>
+                    <button class="rounded-xl bg-white border border-gray-200 px-3 text-xs font-semibold text-slate-600 hover:text-primary-600 hover:border-primary-200 hover:bg-primary-50 transition-colors">
+                      切换并启用
+                    </button>
+                  </form>
+                </div>
+
+                <form method="post" action="/auth/delete">
+                  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                  <input type="hidden" name="key_id" value="{{.PendingKey}}">
+                  <button class="w-full text-xs text-rose-500 hover:text-rose-700 font-medium py-2 px-2 rounded-lg hover:bg-rose-50 transition-colors text-left flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    删除当前密钥
+                  </button>
+                </form>
+              </div>
+            {{end}}
+          </div>
+
+          <div class="mt-4 px-2">
+            <p class="text-[11px] text-slate-400 leading-normal">
+              如请求失败，请检查 Proxy 与 Region 是否匹配，然后尝试“刷新列表”。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-12 lg:col-span-8">
+        {{template "index" .}}
+      </div>
+    </div>
+
+    <div class="mt-12 mb-6 text-center">
+      <p class="text-xs text-slate-400">Light Mode Only</p>
+    </div>
+
+  </div>
+
+  <script>
+    (function(){
+      const btn = document.getElementById('proxyCheckBtn');
+      const result = document.getElementById('proxyCheckResult');
+      if(!btn || !result) return;
+
+      btn.addEventListener('click', async () => {
+        const proxyInput = document.querySelector('input[name="proxy"]');
+        const proxy = proxyInput ? proxyInput.value.trim() : '';
+        if(!proxy){
+          result.classList.remove('hidden');
+          result.classList.remove('bg-emerald-50','border-emerald-200', 'text-emerald-800');
+          result.classList.add('bg-amber-50','border-amber-200','text-amber-800', 'border');
+          result.textContent = '请先填写 Proxy 再检测。';
+          return;
+        }
+        result.classList.remove('hidden');
+        result.className = 'text-xs bg-gray-50 border border-gray-200 rounded-xl p-3 text-slate-600 animate-pulse';
+        result.textContent = '检测中...';
+        try{
+          const r = await fetch('/proxy/check?proxy='+encodeURIComponent(proxy));
+          const j = await r.json();
+          result.classList.remove('animate-pulse');
+          if(j && j.ok){
+            result.className = 'text-xs bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-emerald-800';
+            const asText = (j.as||'').trim();
+            result.innerHTML = '<div class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span class="font-bold">Connected</span></div>' +
+                              '<div class="mt-1 pl-6">IP: <span class="font-mono text-emerald-700">'+(j.ip||'')+'</span></div>' +
+                              '<div class="pl-6 mt-0.5 opacity-80">AS: <span class="font-mono">'+(asText||'N/A')+'</span></div>';
+          }else{
+            result.className = 'text-xs bg-rose-50 border border-rose-200 rounded-xl p-3 text-rose-800';
+            result.textContent = (j && j.error) ? j.error : '检测失败';
+          }
+        }catch(e){
+          result.className = 'text-xs bg-rose-50 border border-rose-200 rounded-xl p-3 text-rose-800';
+          result.textContent = '检测失败：' + (e && e.message ? e.message : e);
+        }
+      });
+    })();
+  </script>
+
+</body>
+</html>
+{{end}}

@@ -1,0 +1,371 @@
+{{define "index"}}
+<div class="space-y-6">
+  
+  <div class="bg-white p-1.5 rounded-2xl border border-gray-200 inline-flex w-full sm:w-auto shadow-sm">
+    <div class="grid grid-cols-3 gap-1 w-full sm:w-auto">
+      <a href="/?tab=create&region={{.Region}}&az={{.AZ}}"
+         class="px-6 py-2 rounded-xl text-sm font-semibold text-center transition-all duration-200 {{if eq .Tab "create"}}bg-slate-900 text-white shadow-md{{else}}text-slate-600 hover:bg-slate-50 hover:text-slate-900{{end}}">
+        🚀 创建
+      </a>
+      <a href="/?tab=manage&region={{.Region}}&az={{.AZ}}"
+         class="px-6 py-2 rounded-xl text-sm font-semibold text-center transition-all duration-200 {{if eq .Tab "manage"}}bg-slate-900 text-white shadow-md{{else}}text-slate-600 hover:bg-slate-50 hover:text-slate-900{{end}}">
+        🧰 管理
+      </a>
+      <a href="/?tab=quota&region={{.Region}}&az={{.AZ}}"
+         class="px-6 py-2 rounded-xl text-sm font-semibold text-center transition-all duration-200 {{if eq .Tab "quota"}}bg-slate-900 text-white shadow-md{{else}}text-slate-600 hover:bg-slate-50 hover:text-slate-900{{end}}">
+        📌 配额
+      </a>
+    </div>
+  </div>
+
+  <div class="rounded-3xl bg-white border border-gray-200 shadow-xl shadow-slate-200/40 p-6 sm:p-8">
+
+    <div class="flex items-center justify-between border-b border-gray-100 pb-5 mb-6">
+      <div class="flex items-center gap-3">
+        <div class="p-2 bg-primary-50 text-primary-600 rounded-lg">
+          {{if eq .Tab "create"}}
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+          {{else if eq .Tab "manage"}}
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          {{else}}
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          {{end}}
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">
+            {{if eq .Tab "create"}}创建实例{{else if eq .Tab "manage"}}实例管理{{else}}配额测试{{end}}
+          </h2>
+          <div class="text-xs text-slate-500 mt-0.5">
+            Region: <span class="font-semibold text-slate-700">{{.Region}}</span> <span class="text-slate-300">|</span> {{regionLabel .Region}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {{if not .HasCreds}}
+      <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+        <div class="text-amber-600 mb-2">
+           <svg class="w-10 h-10 mx-auto opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <h3 class="text-amber-900 font-semibold">需要凭证</h3>
+        <p class="text-amber-700 text-sm mt-1">请先在左侧侧边栏保存 AWS Access Key 和 Secret Key。</p>
+      </div>
+    {{end}}
+
+    {{if eq .Tab "create"}}
+      <form method="post" action="/aws/create" class="animate-fade-in">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <div class="grid grid-cols-12 gap-6">
+          <div class="col-span-12 sm:col-span-6 space-y-1">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide">Region</label>
+            <div class="relative">
+              <select name="region" class="appearance-none w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none transition-all">
+                {{range .Regions}}
+                  <option value="{{.ID}}" {{if eq .ID $.Region}}selected{{end}}>{{.ID}} - {{.Name}}</option>
+                {{end}}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-span-12 sm:col-span-6 space-y-1">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide">Availability Zone</label>
+            <div class="relative">
+              <select name="az" class="appearance-none w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none transition-all">
+                <option value="a">Zone A</option>
+                <option value="b">Zone B</option>
+                <option value="c">Zone C</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-span-12 sm:col-span-6 space-y-1">
+             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide">Network Type</label>
+             <div class="relative">
+              <select name="ip_type" class="appearance-none w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none transition-all">
+                {{range .IPTypes}}
+                  <option value="{{.ID}}" {{if eq .ID $.CreateIPType}}selected{{end}}>{{.Name}}</option>
+                {{end}}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+            <div class="text-[10px] text-slate-400 px-1">影响公网 IP 分配策略</div>
+          </div>
+
+          <div class="col-span-12 sm:col-span-6 space-y-1">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide">Firewall</label>
+            <div class="relative">
+              <select name="enable_fw" class="appearance-none w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none transition-all">
+                <option value="0">默认规则</option>
+                <option value="1">⚠️ 开放全部端口</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+            <div class="text-[10px] text-amber-600/80 px-1">谨慎开启全端口开放</div>
+          </div>
+
+          <div class="col-span-12 sm:col-span-6 space-y-1">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide">Blueprint (OS)</label>
+            <div class="relative">
+              <select name="blueprint_id" class="appearance-none w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none transition-all">
+                {{range .Blueprints}}
+                  <option value="{{.ID}}" {{if eq .ID $.CreateBlueprint}}selected{{end}}>{{.Name}}</option>
+                {{end}}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                <svg class="h-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-span-12 sm:col-span-6 space-y-1">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide">Bundle (Plan)</label>
+            <div class="relative">
+              <select name="bundle_id" class="appearance-none w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none transition-all">
+                {{range .Bundles}}
+                  <option value="{{.ID}}" {{if eq .ID $.CreateBundle}}selected{{end}}>{{.Name}} - {{.ID}}</option>
+                {{end}}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-span-12 space-y-1">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide">Root Password</label>
+            <input name="root_pwd" placeholder="设置实例 Root 密码 (User-Data)"
+                   class="block w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm transition-all focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none placeholder:text-gray-300">
+            <div class="text-[10px] text-slate-400 px-1">请使用强密码。留空则不会通过 User-Data 注入密码。</div>
+          </div>
+        </div>
+
+        <div class="mt-8">
+          <button class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 text-white shadow-lg shadow-primary-600/30 px-8 py-3 text-sm font-bold hover:bg-primary-500 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            立即创建
+          </button>
+        </div>
+      </form>
+    {{end}}
+
+    {{if eq .Tab "manage"}}
+      <div class="animate-fade-in">
+        <div class="flex flex-col sm:flex-row gap-4 items-end bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
+          <div class="flex-1 w-full">
+            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Switch Region</label>
+            <div class="relative">
+              <select id="manageRegion"
+                      class="appearance-none w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none"
+                      onchange="location.href='/?tab=manage&region='+encodeURIComponent(this.value)">
+                {{range .Regions}}
+                  <option value="{{.ID}}" {{if eq .ID $.Region}}selected{{end}}>{{.ID}} ({{.Name}})</option>
+                {{end}}
+              </select>
+               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+          </div>
+          <form method="post" action="/aws/refresh" class="w-full sm:w-auto">
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <input type="hidden" name="region" value="{{.Region}}">
+            <button class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-gray-50 hover:text-slate-900 active:bg-gray-100 transition shadow-sm">
+              <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              刷新列表
+            </button>
+          </form>
+        </div>
+
+        {{if .HasCreds}}
+          {{if not .Instances}}
+            <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-12 text-center">
+              <div class="text-slate-300 mb-3">
+                <svg class="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+              </div>
+              <p class="text-slate-500 font-medium">暂无实例</p>
+              <p class="text-slate-400 text-sm mt-1">当前区域没有检测到实例，或拉取失败。</p>
+            </div>
+          {{else}}
+            <div class="grid grid-cols-1 gap-4">
+              {{range .Instances}}
+                <div class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                    
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-3 mb-2">
+                        <div class="font-bold text-slate-900 text-lg truncate">{{.Name}}</div>
+                        <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{if eq .State "running"}}bg-emerald-50 text-emerald-700 ring-emerald-600/20{{else}}bg-slate-50 text-slate-600 ring-slate-500/20{{end}}">
+                          {{.State}}
+                        </span>
+                        <span class="text-xs text-slate-400 border border-slate-100 rounded px-1.5 py-0.5 bg-slate-50 font-mono">{{.BundleID}}</span>
+                      </div>
+
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-6 text-sm">
+                        
+                        <!-- ✅ IPv4 (改法2：顶部对齐 + 自动换行 + 标签固定宽度) -->
+                        <div class="flex items-start gap-2 group/ip">
+                          <span class="text-slate-400 text-xs w-12 shrink-0">IPv4</span>
+                          <span class="font-mono text-slate-700 font-medium break-all leading-snug">
+                            {{if .PublicIPv4}}{{.PublicIPv4}}{{else}}-{{end}}
+                          </span>
+                          {{if .PublicIPv4}}
+                            <button type="button" onclick="copyText('{{.PublicIPv4}}')" class="text-slate-300 hover:text-primary-600 opacity-0 group-hover/ip:opacity-100 transition-opacity p-1">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            </button>
+                          {{end}}
+                        </div>
+
+                        <!-- ✅ IPv6 (改法2：顶部对齐 + 自动换行 + 标签固定宽度) -->
+                        <div class="flex items-start gap-2 group/ip">
+                          <span class="text-slate-400 text-xs w-12 shrink-0">IPv6</span>
+                          <span class="font-mono text-slate-700 break-all leading-snug">
+                            {{if .PublicIPv6}}{{.PublicIPv6}}{{else}}-{{end}}
+                          </span>
+                          {{if .PublicIPv6}}
+                            <button type="button" onclick="copyText('{{.PublicIPv6}}')" class="text-slate-300 hover:text-primary-600 opacity-0 group-hover/ip:opacity-100 transition-opacity p-1">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            </button>
+                          {{end}}
+                        </div>
+
+                        {{if .StaticIPv4}}
+                          <div class="flex items-center gap-2 group/ip col-span-2 mt-1">
+                            <span class="text-purple-500 text-[10px] font-bold uppercase tracking-wider border border-purple-200 bg-purple-50 rounded px-1">Static</span>
+                            <span class="font-mono text-slate-700 font-medium">{{.StaticIPv4}}</span>
+                            <button type="button" onclick="copyText('{{.StaticIPv4}}')" class="text-slate-300 hover:text-primary-600 opacity-0 group-hover/ip:opacity-100 transition-opacity p-1">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            </button>
+                          </div>
+                        {{end}}
+                      </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 pt-4 lg:pt-0 lg:border-l lg:border-gray-100 lg:pl-5">
+                      <form method="post" action="/aws/reboot">
+                        <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                        <input type="hidden" name="region" value="{{$.Region}}">
+                        <input type="hidden" name="instance" value="{{.Name}}">
+                        <button class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-gray-50 hover:text-slate-900 active:bg-gray-100 transition">
+                          重启
+                        </button>
+                      </form>
+
+                      <form method="post" action="/aws/swapip">
+                        <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                        <input type="hidden" name="region" value="{{$.Region}}">
+                        <input type="hidden" name="instance" value="{{.Name}}">
+                        <button class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-gray-50 hover:text-slate-900 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                {{if not .PublicIPv4}}disabled{{end}}>
+                          换静态IP
+                        </button>
+                      </form>
+
+                      <form method="post" action="/aws/openall">
+                        <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                        <input type="hidden" name="region" value="{{$.Region}}">
+                        <input type="hidden" name="instance" value="{{.Name}}">
+                        <button class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 hover:border-amber-200 active:bg-amber-100 transition">
+                          全端口
+                        </button>
+                      </form>
+
+                      <form method="post" action="/aws/delete" onsubmit="return confirm('⚠️ 高危操作：确定永久删除实例 {{.Name}} 吗？');">
+                        <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                        <input type="hidden" name="region" value="{{$.Region}}">
+                        <input type="hidden" name="instance" value="{{.Name}}">
+                        <button class="rounded-lg bg-rose-50 border border-rose-100 text-rose-600 px-3 py-1.5 text-xs font-semibold hover:bg-rose-600 hover:text-white hover:border-rose-600 active:bg-rose-700 transition">
+                          删除
+                        </button>
+                      </form>
+                    </div>
+
+                  </div>
+                </div>
+              {{end}}
+            </div>
+          {{end}}
+        {{end}}
+      </div>
+    {{end}}
+
+    {{if eq .Tab "quota"}}
+      <div class="animate-fade-in">
+        <form method="post" action="/aws/quota" class="flex flex-col sm:flex-row gap-4 items-end mb-8">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <div class="flex-1 w-full">
+            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Test Region</label>
+            <div class="relative">
+              <select name="quota_region" class="appearance-none w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none transition-all">
+                <option value="">(Default: {{.Region}})</option>
+                {{range .Regions}}
+                  <option value="{{.ID}}" {{if eq .ID $.QuotaRegion}}selected{{end}}>{{.ID}} ({{.Name}})</option>
+                {{end}}
+              </select>
+               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+          </div>
+          <button class="w-full sm:w-auto rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/20 px-6 py-3 text-sm font-bold hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            开始测试
+          </button>
+        </form>
+
+        {{if or .QuotaOn .QuotaSpot}}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg shadow-gray-200/50 relative overflow-hidden group">
+              <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg class="w-16 h-16 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </div>
+              <div class="text-sm font-medium text-slate-500 mb-1">On-demand Quota</div>
+              <div class="text-4xl font-extrabold text-slate-900 tracking-tight">{{.QuotaOn}}</div>
+              {{if .QuotaOnName}}
+                <div class="mt-4 pt-4 border-t border-gray-100 text-xs text-slate-400 font-mono break-all">
+                  {{.QuotaOnName}}
+                </div>
+              {{end}}
+            </div>
+
+            <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg shadow-gray-200/50 relative overflow-hidden group">
+               <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg class="w-16 h-16 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div class="text-sm font-medium text-slate-500 mb-1">Spot Quota</div>
+              <div class="text-4xl font-extrabold text-slate-900 tracking-tight">{{.QuotaSpot}}</div>
+              {{if .QuotaSpName}}
+                 <div class="mt-4 pt-4 border-t border-gray-100 text-xs text-slate-400 font-mono break-all">
+                  {{.QuotaSpName}}
+                </div>
+              {{end}}
+            </div>
+          </div>
+        {{end}}
+      </div>
+    {{end}}
+
+  </div>
+</div>
+
+<script>
+  async function copyText(text){
+    if(!text) return;
+    try{
+      await navigator.clipboard.writeText(text);
+    }catch(e){
+      const t=document.createElement('textarea');
+      t.value=text;document.body.appendChild(t);t.select();
+      document.execCommand('copy');document.body.removeChild(t);
+    }
+  }
+</script>
+{{end}}

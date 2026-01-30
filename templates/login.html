@@ -1,0 +1,78 @@
+{{define "login"}}
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-gray-50 text-slate-800 antialiased selection:bg-primary-100 selection:text-primary-900">
+  <div class="min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-md bg-white border border-gray-200 rounded-3xl shadow-xl shadow-gray-200/50 p-8">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="p-2 bg-primary-50 text-primary-600 rounded-lg">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5s-3 1.343-3 3 1.343 3 3 3z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.5 20a6.5 6.5 0 0113 0"/></svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-900">AutoSail 登录</h1>
+          <p class="text-xs text-slate-500">请输入账号密码进入控制台</p>
+        </div>
+      </div>
+
+      {{if or .Flash.Success .Flash.Error .Flash.Warn .Flash.Info}}
+      <div class="space-y-2 mb-4">
+        {{if .Flash.Error}}
+          <div class="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-800">
+            <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{.Flash.Error}}
+          </div>
+        {{end}}
+        {{if .Flash.Info}}
+          <div class="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-3 text-sm text-sky-700">
+            <svg class="w-5 h-5 text-sky-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{.Flash.Info}}
+          </div>
+        {{end}}
+      </div>
+      {{end}}
+
+      <form method="post" action="/login" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1.5 ml-1">用户名</label>
+          <input name="username" placeholder="admin"
+                 class="block w-full rounded-xl border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm transition-all focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none placeholder:text-gray-400">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1.5 ml-1">密码</label>
+          <input name="password" type="password" placeholder="••••••••"
+                 class="block w-full rounded-xl border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm transition-all focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none placeholder:text-gray-400">
+        </div>
+        <button class="w-full rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/20 py-3 text-sm font-semibold hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-all">
+          登录
+        </button>
+      </form>
+    </div>
+  </div>
+</body>
+{{end}}
