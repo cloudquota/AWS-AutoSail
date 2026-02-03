@@ -53,7 +53,7 @@
     {{end}}
 
     {{if eq .Tab "create"}}
-      <form method="post" action="/aws/create" class="animate-fade-in" data-loading>
+      <form method="post" action="/aws/create" class="animate-fade-in">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <div class="grid grid-cols-12 gap-6">
           <div class="col-span-12 sm:col-span-6 space-y-1">
@@ -74,9 +74,9 @@
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide">Availability Zone</label>
             <div class="relative">
               <select name="az" class="appearance-none w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none transition-all">
-                <option value="a" {{if eq $.AZ "a"}}selected{{end}}>Zone A</option>
-                <option value="b" {{if eq $.AZ "b"}}selected{{end}}>Zone B</option>
-                <option value="c" {{if eq $.AZ "c"}}selected{{end}}>Zone C</option>
+                <option value="a">Zone A</option>
+                <option value="b">Zone B</option>
+                <option value="c">Zone C</option>
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -103,8 +103,8 @@
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide">Firewall</label>
             <div class="relative">
               <select name="enable_fw" class="appearance-none w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/10 outline-none transition-all">
-                <option value="0" {{if not $.CreateEnableFW}}selected{{end}}>默认规则</option>
-                <option value="1" {{if $.CreateEnableFW}}selected{{end}}>⚠️ 开放全部端口</option>
+                <option value="0">默认规则</option>
+                <option value="1">⚠️ 开放全部端口</option>
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -176,7 +176,7 @@
               </div>
             </div>
           </div>
-          <form method="post" action="/aws/refresh" class="w-full sm:w-auto" data-loading>
+          <form method="post" action="/aws/refresh" class="w-full sm:w-auto">
             <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
             <input type="hidden" name="region" value="{{.Region}}">
             <button class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-gray-50 hover:text-slate-900 active:bg-gray-100 transition shadow-sm">
@@ -251,7 +251,7 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2 pt-4 lg:pt-0 lg:border-l lg:border-gray-100 lg:pl-5">
-                      <form method="post" action="/aws/reboot" data-loading>
+                      <form method="post" action="/aws/reboot">
                         <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                         <input type="hidden" name="region" value="{{$.Region}}">
                         <input type="hidden" name="instance" value="{{.Name}}">
@@ -260,7 +260,7 @@
                         </button>
                       </form>
 
-                      <form method="post" action="/aws/swapip" data-loading>
+                      <form method="post" action="/aws/swapip">
                         <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                         <input type="hidden" name="region" value="{{$.Region}}">
                         <input type="hidden" name="instance" value="{{.Name}}">
@@ -270,7 +270,7 @@
                         </button>
                       </form>
 
-                      <form method="post" action="/aws/openall" data-loading>
+                      <form method="post" action="/aws/openall">
                         <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                         <input type="hidden" name="region" value="{{$.Region}}">
                         <input type="hidden" name="instance" value="{{.Name}}">
@@ -279,7 +279,7 @@
                         </button>
                       </form>
 
-                      <form method="post" action="/aws/delete" onsubmit="return confirm('⚠️ 高危操作：确定永久删除实例 {{.Name}} 吗？');" data-loading>
+                      <form method="post" action="/aws/delete" onsubmit="return confirm('⚠️ 高危操作：确定永久删除实例 {{.Name}} 吗？');">
                         <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                         <input type="hidden" name="region" value="{{$.Region}}">
                         <input type="hidden" name="instance" value="{{.Name}}">
@@ -300,7 +300,7 @@
 
     {{if eq .Tab "quota"}}
       <div class="animate-fade-in">
-        <form method="post" action="/aws/quota" class="flex flex-col sm:flex-row gap-4 items-end mb-8" data-loading>
+        <form method="post" action="/aws/quota" class="flex flex-col sm:flex-row gap-4 items-end mb-8">
           <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
           <div class="flex-1 w-full">
             <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Test Region</label>
