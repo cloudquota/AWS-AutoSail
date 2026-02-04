@@ -911,9 +911,6 @@ func resolvePendingKeyID(s *session.Session, keys []store.Key, activeKey *store.
 	if activeKey != nil {
 		return activeKey.ID
 	}
-	if len(keys) > 0 {
-		return keys[0].ID
-	}
 	return 0
 }
 
