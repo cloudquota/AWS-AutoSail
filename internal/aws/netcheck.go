@@ -24,7 +24,10 @@ func CheckProxyExitIP(ctx context.Context, proxy string) (string, string, error)
 	}
 	hc.Timeout = 12 * time.Second
 
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://ipinfo.io/json", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://ipinfo.io/json", nil)
+	if err != nil {
+		return "", "", fmt.Errorf("ipinfo request build error: %v", err)
+	}
 	resp, err := hc.Do(req)
 	if err != nil {
 		return "", "", fmt.Errorf("ipinfo request error: %v", err)

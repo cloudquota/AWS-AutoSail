@@ -114,7 +114,7 @@ func CreateInstance(ctx context.Context, cli LightsailAPI, in CreateInstanceInpu
 			},
 		})
 		if err != nil {
-			// do not fail hard; match "avoid errors" style
+			// keep instance created but still return error for visibility
 			return fmt.Errorf("已创建，但开启全端口失败：%v", err)
 		}
 	}
@@ -303,7 +303,7 @@ else
   service sshd restart >/dev/null 2>&1 || true
 fi
 
-echo -e "\033[32m 请重新登陆，用户名：root ， 密码：$password \033[0m"
+echo -e "\033[32m 请重新登录，用户名：root ， 密码：$password \033[0m"
 `, pw)
 }
 
