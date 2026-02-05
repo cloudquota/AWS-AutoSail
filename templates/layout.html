@@ -201,30 +201,28 @@
                             <div class="truncate font-semibold text-slate-700" data-name="{{.Name}}">{{.Name}}</div>
                             <div class="text-[10px] text-slate-400">ID: {{.ID}}</div>
                           </div>
-                          <form method="post" action="/auth/select">
-                            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-                            <input type="hidden" name="key_id" value="{{.ID}}">
-                            <button class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:border-primary-200 hover:text-primary-600 hover:bg-primary-50 transition">
-                              {{if eq .ID $.PendingKey}}使用中{{else}}启用{{end}}
-                            </button>
-                          </form>
+                          <div class="flex items-center gap-1.5">
+                            <form method="post" action="/auth/select">
+                              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                              <input type="hidden" name="key_id" value="{{.ID}}">
+                              <button class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:border-primary-200 hover:text-primary-600 hover:bg-primary-50 transition">
+                                {{if eq .ID $.PendingKey}}使用中{{else}}启用{{end}}
+                              </button>
+                            </form>
+                            <form method="post" action="/auth/delete">
+                              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                              <input type="hidden" name="key_id" value="{{.ID}}">
+                              <button class="rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-500 hover:border-rose-200 hover:text-rose-600 hover:bg-rose-100 transition">
+                                删除
+                              </button>
+                            </form>
+                          </div>
                         </div>
                       {{end}}
                     </div>
                     <p id="accountEmpty" class="hidden text-[11px] text-slate-400 text-center py-2">未找到匹配的账号</p>
                   </div>
                 </details>
-
-                <form method="post" action="/auth/delete">
-                  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-                  <input type="hidden" name="key_id" value="{{.PendingKey}}">
-                  <button class="w-full text-xs text-rose-500 hover:text-rose-700 font-medium py-2 px-2 rounded-lg hover:bg-rose-50 transition-colors text-left flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                    删除当前密钥
-                  </button>
-                </form>
               </div>
             {{end}}
           </div>
