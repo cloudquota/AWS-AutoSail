@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -999,7 +1000,11 @@ func main() {
 		c.Redirect(http.StatusFound, "/?tab=quota&msg=quota_ok")
 	})
 
-	_ = r.Run(":" + strconv.Itoa(port))
+	addr := ":" + strconv.Itoa(port)
+	log.Printf("AutoSail listening on %s", addr)
+	if err := r.Run(addr); err != nil {
+		log.Fatalf("failed to start server on %s: %v", addr, err)
+	}
 }
 
 func doManageAction(c *gin.Context, action string, fn func(ctx *gin.Context, cli aws.LightsailAPI, name string) error) {
