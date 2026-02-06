@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 
@@ -58,24 +56,17 @@ type PageData struct {
 	CreateBlueprint string
 	CreateBundle    string
 	CreateRootPwd   string
-	CreateService   string
-	CreateEC2AMI    string
-	CreateEC2Type   string
 
 	Blueprints []Option
 	Bundles    []Option
 	IPTypes    []Option
-	EC2AMIs    []Option
-	EC2Types   []Option
 
 	// Proxy check
 	ProxyExitIP  string
 	ProxyExitASN string
 
 	// Manage
-	Instances     []aws.InstanceView
-	EC2Instances  []aws.EC2InstanceView
-	ManageService string
+	Instances []aws.InstanceView
 
 	// Quota
 	QuotaRegion string
@@ -151,23 +142,6 @@ var ipTypeOptions = []Option{
 	{ID: "dualstack", Name: "双栈（IPv4+IPv6）"},
 	{ID: "ipv6", Name: "仅 IPv6（IPv6-only）"},
 	{ID: "ipv4", Name: "仅 IPv4"},
-}
-
-var ec2AMIOptions = []Option{
-	{ID: "ubuntu-24.04", Name: "Ubuntu 24.04 LTS"},
-	{ID: "ubuntu-22.04", Name: "Ubuntu 22.04 LTS"},
-	{ID: "debian-12", Name: "Debian 12"},
-	{ID: "amzn-2023", Name: "Amazon Linux 2023"},
-	{ID: "custom", Name: "自定义 AMI ID"},
-}
-
-var ec2InstanceTypes = []Option{
-	{ID: "t3.micro", Name: "t3.micro (2 vCPU, 1 GB)"},
-	{ID: "t3.small", Name: "t3.small (2 vCPU, 2 GB)"},
-	{ID: "t3.medium", Name: "t3.medium (2 vCPU, 4 GB)"},
-	{ID: "t3.large", Name: "t3.large (2 vCPU, 8 GB)"},
-	{ID: "t3.xlarge", Name: "t3.xlarge (4 vCPU, 16 GB)"},
-	{ID: "custom", Name: "自定义实例类型"},
 }
 
 var ipv6BundleMap = map[string]string{
@@ -372,21 +346,6 @@ func main() {
 			s.SetString("tab", tab)
 		}
 
-		serviceQuery := strings.TrimSpace(c.Query("service"))
-		if tab == "create" {
-			if serviceQuery == "" {
-				serviceQuery = s.GetString("create_service", "lightsail")
-			} else {
-				s.SetString("create_service", serviceQuery)
-			}
-		} else if tab == "manage" {
-			if serviceQuery == "" {
-				serviceQuery = s.GetString("manage_service", "lightsail")
-			} else {
-				s.SetString("manage_service", serviceQuery)
-			}
-		}
-
 		region := normalizeRegion(c.Query("region"))
 		if region == "" {
 			region = normalizeRegion(s.GetString("region", "us-east-1"))
@@ -416,10 +375,6 @@ func main() {
 		createBlueprint := s.GetString("create_blueprint", "ubuntu_24_04")
 		createBundle := s.GetString("create_bundle", "nano_3_0")
 		createFW := s.GetString("create_fw_all", "1") == "1"
-		createService := s.GetString("create_service", "lightsail")
-		manageService := s.GetString("manage_service", "lightsail")
-		createEC2AMI := s.GetString("create_ec2_ami", "ubuntu-22.04")
-		createEC2Type := s.GetString("create_ec2_type", "t3.micro")
 
 		activeAK := strings.TrimSpace(keyAccessKey(activeKey))
 		activeProxy := strings.TrimSpace(keyProxy(activeKey))
@@ -445,15 +400,9 @@ func main() {
 			CreateBlueprint: createBlueprint,
 			CreateBundle:    createBundle,
 			CreateEnableFW:  createFW,
-			CreateService:   createService,
-			CreateEC2AMI:    createEC2AMI,
-			CreateEC2Type:   createEC2Type,
 			Blueprints:      blueprintOptions,
 			Bundles:         bundleOptions,
 			IPTypes:         ipTypeOptions,
-			EC2AMIs:         ec2AMIOptions,
-			EC2Types:        ec2InstanceTypes,
-			ManageService:   manageService,
 		}
 
 		switch c.Query("msg") {
@@ -495,18 +444,6 @@ func main() {
 			data.Flash.Success = "✅ 换静态 IP 已提交/完成（如刚申请需稍等同步）"
 		case "swapip_failed":
 			data.Flash.Error = "换静态 IP 失败（可能是 IPv6-only 或额度/权限问题）"
-		case "start_ok":
-			data.Flash.Success = "已提交启动"
-		case "start_failed":
-			data.Flash.Error = "启动失败（详情看日志）"
-		case "stop_ok":
-			data.Flash.Success = "已提交停止"
-		case "stop_failed":
-			data.Flash.Error = "停止失败（详情看日志）"
-		case "terminate_ok":
-			data.Flash.Success = "已提交终止"
-		case "terminate_failed":
-			data.Flash.Error = "终止失败（详情看日志）"
 		case "delete_ok":
 			data.Flash.Success = "已提交删除（如有静态 IP 已尝试释放）"
 		case "delete_failed":
@@ -515,40 +452,20 @@ func main() {
 
 		// manage list
 		if tab == "manage" && activeHasCreds {
-			if manageService == "ec2" {
-				key := strings.Join([]string{"ec2inst", region, activeAK, activeProxy}, "|")
-				if v, ok := instCache.Get(key); ok {
-					data.EC2Instances = v.([]aws.EC2InstanceView)
-				} else {
-					cli, err := aws.NewEC2Client(c.Request.Context(), region, activeAK, activeKey.SecretKey, activeProxy)
-					if err != nil {
-						data.Flash.Error = "创建 EC2 client 失败：" + err.Error()
-					} else {
-						list, err := aws.ListEC2Instances(c.Request.Context(), cli)
-						if err != nil {
-							data.Flash.Error = "拉取 EC2 实例失败：" + err.Error()
-						} else {
-							data.EC2Instances = list
-							instCache.Set(key, list, cache.DefaultExpiration)
-						}
-					}
-				}
+			key := strings.Join([]string{"inst", region, activeAK, activeProxy}, "|")
+			if v, ok := instCache.Get(key); ok {
+				data.Instances = v.([]aws.InstanceView)
 			} else {
-				key := strings.Join([]string{"inst", region, activeAK, activeProxy}, "|")
-				if v, ok := instCache.Get(key); ok {
-					data.Instances = v.([]aws.InstanceView)
+				cli, err := aws.NewLightsailClient(c.Request.Context(), region, activeAK, activeKey.SecretKey, activeProxy)
+				if err != nil {
+					data.Flash.Error = "创建 Lightsail client 失败：" + err.Error()
 				} else {
-					cli, err := aws.NewLightsailClient(c.Request.Context(), region, activeAK, activeKey.SecretKey, activeProxy)
+					list, err := aws.ListInstances(c.Request.Context(), cli)
 					if err != nil {
-						data.Flash.Error = "创建 Lightsail client 失败：" + err.Error()
+						data.Flash.Error = "拉取实例失败：" + err.Error()
 					} else {
-						list, err := aws.ListInstances(c.Request.Context(), cli)
-						if err != nil {
-							data.Flash.Error = "拉取实例失败：" + err.Error()
-						} else {
-							data.Instances = list
-							instCache.Set(key, list, cache.DefaultExpiration)
-						}
+						data.Instances = list
+						instCache.Set(key, list, cache.DefaultExpiration)
 					}
 				}
 			}
@@ -726,12 +643,6 @@ func main() {
 		sk := strings.TrimSpace(activeKey.SecretKey)
 		proxy := strings.TrimSpace(activeKey.Proxy)
 
-		service := strings.TrimSpace(c.PostForm("service"))
-		if service == "" {
-			service = "lightsail"
-		}
-		s.SetString("create_service", service)
-
 		region := normalizeRegion(strings.TrimSpace(c.PostForm("region")))
 		az := strings.TrimSpace(c.PostForm("az"))
 		if region == "" {
@@ -742,67 +653,6 @@ func main() {
 		}
 		s.SetString("region", region)
 		s.SetString("az", az)
-
-		if service == "ec2" {
-			amiChoice := strings.TrimSpace(c.PostForm("ec2_ami"))
-			amiCustom := strings.TrimSpace(c.PostForm("ec2_ami_custom"))
-			instanceType := strings.TrimSpace(c.PostForm("ec2_type"))
-			instanceTypeCustom := strings.TrimSpace(c.PostForm("ec2_type_custom"))
-			countStr := strings.TrimSpace(c.PostForm("ec2_count"))
-			rootPwd := strings.TrimSpace(c.PostForm("root_pwd"))
-			if amiChoice != "" {
-				s.SetString("create_ec2_ami", amiChoice)
-			}
-			if instanceType != "" {
-				s.SetString("create_ec2_type", instanceType)
-			}
-
-			count := int32(1)
-			if countStr != "" {
-				if parsed, err := strconv.Atoi(countStr); err == nil && parsed > 0 {
-					count = int32(parsed)
-				}
-			}
-
-			cli, err := aws.NewEC2Client(c.Request.Context(), region, ak, sk, proxy)
-			if err != nil {
-				c.Redirect(http.StatusFound, "/?tab=create&region="+region+"&msg=err_client&service=ec2")
-				return
-			}
-
-			if instanceType == "custom" {
-				instanceType = instanceTypeCustom
-			}
-
-			amiID, err := aws.ResolveEC2AMI(c.Request.Context(), cli, amiChoice, amiCustom)
-			if err != nil {
-				c.Redirect(http.StatusFound, "/?tab=create&region="+region+"&msg=create_failed&service=ec2")
-				return
-			}
-
-			userData := ""
-			if rootPwd != "" {
-				userData = aws.BuildRootPasswordUserData(rootPwd)
-			}
-
-			err = aws.CreateEC2Instance(c.Request.Context(), cli, aws.CreateEC2InstanceInput{
-				Name:         "ec2-" + strconv.FormatInt(time.Now().Unix(), 10),
-				AMI:          amiID,
-				InstanceType: instanceType,
-				Count:        count,
-				UserData:     userData,
-			})
-			if err != nil {
-				c.Redirect(http.StatusFound, "/?tab=create&region="+region+"&msg=create_failed&service=ec2")
-				return
-			}
-
-			key := strings.Join([]string{"ec2inst", region, ak, proxy}, "|")
-			instCache.Delete(key)
-
-			c.Redirect(http.StatusFound, "/?tab=manage&region="+region+"&msg=created&service=ec2")
-			return
-		}
 
 		ipType := strings.TrimSpace(c.PostForm("ip_type"))
 		if ipType == "" {
@@ -905,17 +755,9 @@ func main() {
 		if region == "" {
 			region = normalizeRegion(s.GetString("region", "us-east-1"))
 		}
-		service := strings.TrimSpace(c.PostForm("service"))
-		if service == "" {
-			service = s.GetString("manage_service", "lightsail")
-		}
-		keyPrefix := "inst"
-		if service == "ec2" {
-			keyPrefix = "ec2inst"
-		}
-		key := strings.Join([]string{keyPrefix, region, ak, proxy}, "|")
+		key := strings.Join([]string{"inst", region, ak, proxy}, "|")
 		instCache.Delete(key)
-		c.Redirect(http.StatusFound, "/?tab=manage&region="+region+"&service="+service)
+		c.Redirect(http.StatusFound, "/?tab=manage&region="+region)
 	})
 
 	r.POST("/aws/delete", func(c *gin.Context) {
@@ -927,30 +769,6 @@ func main() {
 	r.POST("/aws/swapip", func(c *gin.Context) {
 		doManageAction(c, "swapip", func(ctx *gin.Context, cli aws.LightsailAPI, name string) error {
 			return aws.SwapStaticIPForInstance(ctx.Request.Context(), cli, name)
-		})
-	})
-
-	r.POST("/aws/ec2/start", func(c *gin.Context) {
-		doManageActionEC2(c, "start", func(ctx *gin.Context, cli *ec2.Client, id string) error {
-			return aws.StartEC2Instance(ctx.Request.Context(), cli, id)
-		})
-	})
-
-	r.POST("/aws/ec2/stop", func(c *gin.Context) {
-		doManageActionEC2(c, "stop", func(ctx *gin.Context, cli *ec2.Client, id string) error {
-			return aws.StopEC2Instance(ctx.Request.Context(), cli, id)
-		})
-	})
-
-	r.POST("/aws/ec2/reboot", func(c *gin.Context) {
-		doManageActionEC2(c, "reboot", func(ctx *gin.Context, cli *ec2.Client, id string) error {
-			return aws.RebootEC2Instance(ctx.Request.Context(), cli, id)
-		})
-	})
-
-	r.POST("/aws/ec2/terminate", func(c *gin.Context) {
-		doManageActionEC2(c, "terminate", func(ctx *gin.Context, cli *ec2.Client, id string) error {
-			return aws.TerminateEC2Instance(ctx.Request.Context(), cli, id)
 		})
 	})
 
@@ -1000,11 +818,7 @@ func main() {
 		c.Redirect(http.StatusFound, "/?tab=quota&msg=quota_ok")
 	})
 
-	addr := ":" + strconv.Itoa(port)
-	log.Printf("AutoSail listening on %s", addr)
-	if err := r.Run(addr); err != nil {
-		log.Fatalf("failed to start server on %s: %v", addr, err)
-	}
+	_ = r.Run(":" + strconv.Itoa(port))
 }
 
 func doManageAction(c *gin.Context, action string, fn func(ctx *gin.Context, cli aws.LightsailAPI, name string) error) {
@@ -1050,50 +864,6 @@ func doManageAction(c *gin.Context, action string, fn func(ctx *gin.Context, cli
 	instCache.Delete(key)
 
 	c.Redirect(http.StatusFound, "/?tab=manage&region="+region+"&msg="+action+"_ok")
-}
-
-func doManageActionEC2(c *gin.Context, action string, fn func(ctx *gin.Context, cli *ec2.Client, id string) error) {
-	s := session.Must(c)
-	userID, _ := userIDFromSession(s)
-	keys, _ := appStore.ListKeys(c.Request.Context(), userID)
-	activeKey, _ := resolveActiveKey(s, keys)
-	if activeKey == nil {
-		c.Redirect(http.StatusFound, "/?tab=manage&msg=needuse&service=ec2")
-		return
-	}
-	ak := strings.TrimSpace(activeKey.AccessKey)
-	sk := strings.TrimSpace(activeKey.SecretKey)
-	proxy := strings.TrimSpace(activeKey.Proxy)
-
-	region := normalizeRegion(strings.TrimSpace(c.PostForm("region")))
-	if region == "" {
-		region = normalizeRegion(s.GetString("region", "us-east-1"))
-	}
-	id := strings.TrimSpace(c.PostForm("instance"))
-	if id == "" {
-		c.Redirect(http.StatusFound, "/?tab=manage&region="+region+"&service=ec2")
-		return
-	}
-	if ak == "" || sk == "" {
-		c.Redirect(http.StatusFound, "/?tab=manage&region="+region+"&service=ec2")
-		return
-	}
-
-	cli, err := aws.NewEC2Client(c.Request.Context(), region, ak, sk, proxy)
-	if err != nil {
-		c.Redirect(http.StatusFound, "/?tab=manage&region="+region+"&msg=err_client&service=ec2")
-		return
-	}
-
-	if err := fn(c, cli, id); err != nil {
-		c.Redirect(http.StatusFound, "/?tab=manage&region="+region+"&msg="+action+"_failed&service=ec2")
-		return
-	}
-
-	key := strings.Join([]string{"ec2inst", region, ak, proxy}, "|")
-	instCache.Delete(key)
-
-	c.Redirect(http.StatusFound, "/?tab=manage&region="+region+"&msg="+action+"_ok&service=ec2")
 }
 
 func isLoggedIn(s *session.Session) bool {

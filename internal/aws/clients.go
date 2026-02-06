@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/lightsail"
 	"github.com/aws/aws-sdk-go-v2/service/servicequotas"
 )
@@ -71,27 +70,6 @@ func NewLightsailClient(ctx context.Context, region, ak, sk, proxy string) (*lig
 		return nil, err
 	}
 	return lightsail.NewFromConfig(cfg), nil
-}
-
-func NewEC2Client(ctx context.Context, region, ak, sk, proxy string) (*ec2.Client, error) {
-	if region == "" || ak == "" || sk == "" {
-		return nil, errors.New("missing region/ak/sk")
-	}
-	hc, err := baseHTTPClient(proxy)
-	if err != nil {
-		return nil, err
-	}
-
-	cfg, err := config.LoadDefaultConfig(
-		ctx,
-		config.WithRegion(region),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(ak, sk, "")),
-		config.WithHTTPClient(hc),
-	)
-	if err != nil {
-		return nil, err
-	}
-	return ec2.NewFromConfig(cfg), nil
 }
 
 func NewServiceQuotasClient(ctx context.Context, region, ak, sk, proxy string) (*servicequotas.Client, error) {
