@@ -1,0 +1,324 @@
+{{define "login"}}
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} - 登录</title>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Roboto', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8f9fa;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Centered card layout ── */
+    .login-page {
+      display: flex;
+      width: 900px;
+      max-width: 96vw;
+      min-height: 540px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(60,64,67,0.14), 0 1px 4px rgba(60,64,67,0.1);
+    }
+
+    /* ── Left panel (Google Cloud blue) ── */
+    .login-panel-left {
+      width: 340px;
+      flex-shrink: 0;
+      background: #1a73e8;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 40px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .login-panel-left::before {
+      content: '';
+      position: absolute;
+      width: 380px; height: 380px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+      top: -140px; right: -160px;
+    }
+    .login-panel-left::after {
+      content: '';
+      position: absolute;
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      bottom: -80px; left: -80px;
+    }
+    .lp-brand {
+      position: relative; z-index: 1;
+    }
+    .lp-brand__logo {
+      width: 44px; height: 44px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Google Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin-bottom: 22px;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+    .lp-brand__name {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: #fff;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+    .lp-brand__desc {
+      font-size: 13px;
+      color: rgba(255,255,255,0.78);
+      line-height: 1.7;
+    }
+    .lp-features {
+      position: relative; z-index: 1;
+      list-style: none;
+    }
+    .lp-features li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.85);
+      font-size: 12.5px;
+      margin-bottom: 8px;
+    }
+    .lp-features li .material-icons-round {
+      font-size: 15px;
+      color: rgba(255,255,255,0.65);
+    }
+
+    /* ── Right panel (white form) ── */
+    .login-panel-right {
+      flex: 1;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 44px;
+    }
+    .login-form-wrap { width: 100%; max-width: 340px; }
+
+    .lf-header { margin-bottom: 28px; }
+    .lf-header h2 {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 24px;
+      font-weight: 400;
+      color: #202124;
+      margin-bottom: 6px;
+    }
+    .lf-header p {
+      font-size: 13px;
+      color: #5f6368;
+    }
+
+    /* Google account logo row */
+    .lf-logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 24px;
+      border: 1px solid #dadce0;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: #3c4043;
+      font-weight: 500;
+    }
+    .lf-logo-row .lf-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #1a73e8;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .lf-error {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 4px;
+      background: #fce8e6;
+      color: #d93025;
+      font-size: 13px;
+      margin-bottom: 18px;
+      border-left: 3px solid #d93025;
+    }
+    .lf-error .material-icons-round { font-size: 18px; flex-shrink: 0; }
+
+    .lf-group { margin-bottom: 18px; }
+    .lf-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #5f6368;
+      margin-bottom: 5px;
+    }
+    .lf-input {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 13px;
+      border-radius: 4px;
+      border: 1px solid #dadce0;
+      background: #fff;
+      color: #202124;
+      font-size: 14px;
+      font-family: 'Roboto', sans-serif;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .lf-input:hover { border-color: #80868b; }
+    .lf-input:focus {
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26,115,232,0.18);
+    }
+    .lf-input::placeholder { color: #9aa0a6; }
+
+    .lf-submit {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px;
+      border-radius: 4px;
+      border: none;
+      background: #1a73e8;
+      color: #fff;
+      font-family: 'Google Sans', 'Roboto', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: 0.1px;
+    }
+    .lf-submit:hover { background: #1967d2; box-shadow: 0 2px 8px rgba(26,115,232,0.3); }
+    .lf-submit:active { background: #1557b0; }
+    .lf-submit .material-icons-round { font-size: 20px; }
+
+    .lf-footer {
+      margin-top: 20px;
+      padding: 12px 14px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      border: 1px solid #e8eaed;
+      font-size: 12px;
+      color: #5f6368;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .lf-footer .material-icons-round { font-size: 15px; color: #80868b; }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      .login-panel-left { display: none; }
+      .login-panel-right { padding: 32px 24px; }
+      .login-page { border-radius: 0; width: 100%; min-height: 100vh; }
+      body { align-items: flex-start; padding: 0; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-page">
+    <!-- Left panel -->
+    <div class="login-panel-left">
+      <div class="lp-brand">
+        <div class="lp-brand__logo">AWS</div>
+        <div class="lp-brand__name">AWS 工具站</div>
+        <p class="lp-brand__desc">统一管理 AWS 账号、Lightsail 与 EC2 实例、区域激活及常用操作。</p>
+      </div>
+      <ul class="lp-features">
+        <li><span class="material-icons-round">cloud</span>多账号 Lightsail / EC2 管理</li>
+        <li><span class="material-icons-round">speed</span>vCPU 配额一键检测</li>
+        <li><span class="material-icons-round">vpn_key</span>AK/SK 密钥自动轮换</li>
+        <li><span class="material-icons-round">public</span>支持代理 / 多区域</li>
+      </ul>
+    </div>
+
+    <!-- Right panel -->
+    <div class="login-panel-right">
+      <div class="login-form-wrap">
+        <div class="lf-header">
+          <h2>登录</h2>
+          <p>使用管理员账号进入控制台</p>
+        </div>
+
+        <div class="lf-logo-row">
+          <div class="lf-avatar" id="loginAvatar">A</div>
+          AWS 控制台 · {{if .Username}}{{.Username}}{{else}}管理员{{end}}
+        </div>
+
+        {{if .Error}}
+        <div class="lf-error">
+          <span class="material-icons-round">error_outline</span>
+          {{.Error}}
+        </div>
+        {{end}}
+
+        <form method="post" action="/login">
+          <div class="lf-group">
+            <label class="lf-label">用户名</label>
+            <input name="username" class="lf-input" placeholder="输入用户名" autocomplete="username" value="{{.Username}}">
+          </div>
+          <div class="lf-group">
+            <label class="lf-label">密码</label>
+            <input name="password" type="password" class="lf-input" placeholder="输入密码" autocomplete="current-password">
+          </div>
+          <button type="submit" class="lf-submit">
+            <span class="material-icons-round">login</span>
+            登录
+          </button>
+        </form>
+
+        <div class="lf-footer">
+          <span class="material-icons-round">info</span>
+          默认账户：admin / admin，登录后建议立即修改密码。
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Dynamically update avatar initial from username input
+    (function() {
+      var input = document.querySelector('input[name="username"]');
+      var avatar = document.getElementById('loginAvatar');
+      if (!input || !avatar) return;
+      function updateAvatar() {
+        var val = input.value.trim();
+        avatar.textContent = val ? val.charAt(0).toUpperCase() : 'A';
+      }
+      updateAvatar();
+      input.addEventListener('input', updateAvatar);
+    })();
+  </script>
+</body>
+</html>
+{{end}}

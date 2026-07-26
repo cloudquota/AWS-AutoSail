@@ -1,0 +1,1901 @@
+{{define "index"}}
+<div>
+
+  {{if eq .Tab "settings"}}
+    <!-- ===== SETTINGS TAB (account/password only) ===== -->
+    <div class="berry-card berry-section">
+      <div class="berry-card-header">
+        <div class="berry-card-header-left">
+          <div class="icon-box icon-box-purple"><span class="material-icons-round">person</span></div>
+          <div>
+            <h3>账户设置</h3>
+            <div class="subtitle">修改面板登录凭证</div>
+          </div>
+        </div>
+      </div>
+      <div class="berry-card-body">
+        <form method="post" action="/settings/account">
+          <div class="berry-row">
+            <div class="berry-col-6" style="flex:1;min-width:200px">
+              <div class="berry-input-group">
+                <label class="berry-label">用户名</label>
+                <input name="username" placeholder="admin" class="berry-input" value="{{.CfgUsername}}">
+              </div>
+            </div>
+            <div class="berry-col-6" style="flex:1;min-width:200px">
+              <div class="berry-input-group">
+                <label class="berry-label">新密码（留空则不修改）</label>
+                <input name="password" type="password" placeholder="密码" class="berry-input">
+              </div>
+            </div>
+          </div>
+          <button class="berry-btn berry-btn-primary">
+            <span class="material-icons-round" style="font-size:18px">save</span>
+            保存账户设置
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 退出登录 -->
+    <div class="berry-card berry-section" style="margin-top:20px">
+      <div class="berry-card-body" style="padding:16px 24px">
+        <form method="post" action="/logout" style="margin:0">
+          <button class="berry-btn berry-btn-error">
+            <span class="material-icons-round" style="font-size:18px">logout</span>
+            退出登录
+          </button>
+        </form>
+      </div>
+    </div>
+  {{end}}
+
+    {{if eq .Tab "awsaccount"}}
+    <div class="berry-card berry-section">
+      <div class="berry-card-header">
+        <div class="berry-card-header-left">
+          <div class="icon-box icon-box-orange"><span class="material-icons-round">cloud</span></div>
+          <div>
+            <h3>AWS 账户管理</h3>
+            <div class="subtitle">表格查看多个账号，编辑和配额测试都通过弹窗完成</div>
+          </div>
+        </div>
+        <div class="aws-card-actions">
+          <span class="berry-badge berry-badge-orange">多账户</span>
+          <button type="button" class="berry-btn berry-btn-primary berry-btn-sm" onclick="openAddModal()">
+            <span class="material-icons-round" style="font-size:16px">add</span>
+            添加账户
+          </button>
+        </div>
+      </div>
+      <div class="berry-card-body">
+        <div class="aws-table-wrap">
+          <div class="aws-account-toolbar">
+            <div class="aws-account-toolbar__summary">
+              当前显示 {{len .AWSAccounts}} 个账号，共 {{.AWSTotal}} 个
+            </div>
+            {{if gt .AWSTotalPages 1}}
+              <div class="aws-account-pager">
+                <a href="/?tab=awsaccount&page={{.AWSPrevPage}}" class="{{if not .AWSHasPrev}}is-disabled{{end}}">上一页</a>
+                <span>第 {{.AWSPage}} / {{.AWSTotalPages}} 页</span>
+                <a href="/?tab=awsaccount&page={{.AWSNextPage}}" class="{{if not .AWSHasNext}}is-disabled{{end}}">下一页</a>
+              </div>
+            {{end}}
+          </div>
+
+          {{if .AWSAccounts}}
+            <table class="aws-table aws-table--compact">
+              <thead>
+                <tr>
+                  <th style="width:40%">账户</th>
+                  <th style="width:18%">区域</th>
+                  <th style="width:20%">配额</th>
+                  <th style="width:22%">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{range .AWSAccounts}}
+                  <tr>
+                    <td>
+                      <div class="aws-account-inline">
+                        <div class="aws-account-inline__icon">
+                          <span class="material-icons-round">cloud_done</span>
+                        </div>
+                        <div class="aws-account-inline__main">
+                          <div class="aws-table-name">{{.Name}}</div>
+                          <div class="aws-table-meta">
+                            <span>AK {{maskStr .AK}}</span>
+                            {{if .Proxy}}<span>Proxy {{.Proxy}}</span>{{end}}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="aws-cell-stack">
+                        <span class="berry-badge berry-badge-grey">{{if .Region}}{{.Region}}{{else}}未设置{{end}}</span>
+                      </div>
+                    </td>
+                    <td>
+                      {{if .HasQuota}}
+                        <div class="aws-quota-inline">
+                          <span class="aws-quota-pill aws-quota-pill--ok">{{.QuotaOn}}</span>
+                          <span class="aws-quota-pill aws-quota-pill--soft">{{.QuotaSpot}}</span>
+                        </div>
+                      {{else}}
+                        <span class="aws-quota-empty-inline">未测试</span>
+                      {{end}}
+                    </td>
+                    <td>
+                      <div class="aws-row-actions aws-row-actions--compact">
+                        <button type="button" class="berry-btn berry-btn-outlined berry-btn-sm" onclick="openEditModal(this)" data-aws-edit="1" data-name="{{.Name}}" data-ak="{{.AK}}" data-sk="{{.SK}}" data-proxy="{{.Proxy}}" data-region="{{.Region}}" title="编辑账号">
+                          <span class="material-icons-round" style="font-size:16px">edit</span>
+                        </button>
+                        <button type="button" class="berry-btn berry-btn-primary berry-btn-sm" onclick="openQuotaModal(this)" data-aws-quota="1" data-name="{{.Name}}" data-region="{{.QuotaRegion}}" title="测试配额">
+                          <span class="material-icons-round" style="font-size:16px">speed</span>
+                        </button>
+                        <button type="button" class="berry-btn berry-btn-outlined berry-btn-sm" onclick="openRegionModal(this)" data-aws-region="1" data-name="{{.Name}}" title="特殊区域">
+                          <span class="material-icons-round" style="font-size:16px">public</span>
+                        </button>
+                        <button type="button" class="berry-btn berry-btn-warn-outlined berry-btn-sm" onclick="openNewbieModal(this)" data-aws-newbie="1" data-name="{{.Name}}" title="新手任务">
+                          <span class="material-icons-round" style="font-size:16px">card_giftcard</span>
+                        </button>
+                        <form method="post" action="/settings/aws/rotate" style="margin:0">
+                          <input type="hidden" name="acct_name" value="{{.Name}}">
+                          <input type="hidden" name="page" value="{{$.AWSPage}}">
+                          <button onclick="return confirm('确定轮换账号 {{.Name}} 的密钥吗？')" class="berry-btn berry-btn-warn-outlined berry-btn-sm" title="轮换密钥">
+                            <span class="material-icons-round" style="font-size:16px">vpn_key</span>
+                          </button>
+                        </form>
+                        <form method="post" action="/settings/aws/delete" style="margin:0">
+                          <input type="hidden" name="acct_name" value="{{.Name}}">
+                          <input type="hidden" name="page" value="{{$.AWSPage}}">
+                          <button onclick="return confirm('确定删除账号 {{.Name}} 吗？')" class="berry-btn berry-btn-error berry-btn-sm" title="删除账号">
+                            <span class="material-icons-round" style="font-size:16px">delete_outline</span>
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                {{end}}
+              </tbody>
+            </table>
+          {{else}}
+            <div class="berry-empty berry-mb-4">
+              <span class="material-icons-round">cloud_off</span>
+              <p>暂无 AWS 账号，请点击右上角“添加账户”。</p>
+            </div>
+          {{end}}
+        </div>
+
+        <div class="aws-modal" id="awsAddModal" aria-hidden="true">
+          <div class="aws-modal__backdrop" onclick="closeAwsModal('awsAddModal')"></div>
+          <div class="aws-modal__panel">
+            <div class="aws-modal__header">
+              <div class="aws-modal__title">添加账户</div>
+              <button type="button" class="aws-modal__close" onclick="closeAwsModal('awsAddModal')">×</button>
+            </div>
+            <form method="post" action="/settings/aws/add" id="awsAddForm">
+              <input type="hidden" name="page" value="{{.AWSPage}}">
+              <input type="hidden" name="add_mode" id="awsAdd_mode" value="">
+              <div class="berry-input-group">
+                <label class="berry-label">批量添加</label>
+                <textarea name="acct_bulk" class="berry-input" rows="7" placeholder="支持批量粘贴，每行或每段一组账号。示例：&#10;主账号,AKIA...,SecretKey...&#10;AKIA...,SecretKey...&#10;测试号|AKIA...|SecretKey...|http://127.0.0.1:7890|us-west-2"></textarea>
+                <div class="berry-input-hint">点“批量添加”时只解析这里的内容。会自动识别 Access Key / Secret Key，没有名称会自动生成，地区默认 us-east-1。</div>
+              </div>
+              <div class="berry-input-group">
+                <label class="berry-label">单个账号名称</label>
+                <input name="acct_name" class="berry-input" placeholder="单个添加时可填写；留空会自动生成随机名称">
+              </div>
+              <div class="berry-input-group">
+                <label class="berry-label">Access Key</label>
+                <input name="acct_ak" class="berry-input" placeholder="AKIA...">
+              </div>
+              <div class="berry-input-group">
+                <label class="berry-label">Secret Key</label>
+                <input name="acct_sk" type="text" class="berry-input" placeholder="输入 Secret Key">
+              </div>
+              <div class="berry-input-group">
+                <label class="berry-label">Proxy（可选）</label>
+                <input name="acct_proxy" class="berry-input" placeholder="http://user:pass@ip:port">
+              </div>
+              <div class="berry-input-group">
+                <label class="berry-label">默认 Region</label>
+                <div class="berry-select-wrapper">
+                  <select name="acct_region" class="berry-select">
+                    {{range .Regions}}
+                      <option value="{{.ID}}" {{if eq .ID "us-east-1"}}selected{{end}}>{{.ID}} ({{.Name}})</option>
+                    {{end}}
+                  </select>
+                </div>
+              </div>
+              <div class="aws-modal__actions">
+                <button type="button" class="berry-btn berry-btn-outlined" onclick="closeAwsModal('awsAddModal')">关闭</button>
+                <button type="submit" class="berry-btn berry-btn-secondary" onclick="return submitAwsAdd('single')">单个添加</button>
+                <button type="submit" class="berry-btn berry-btn-primary" onclick="return submitAwsAdd('bulk')">批量添加</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="aws-modal" id="awsEditModal" aria-hidden="true">
+          <div class="aws-modal__backdrop" onclick="closeAwsModal('awsEditModal')"></div>
+          <div class="aws-modal__panel">
+            <div class="aws-modal__header">
+              <div class="aws-modal__title">编辑账号</div>
+              <button type="button" class="aws-modal__close" onclick="closeAwsModal('awsEditModal')">×</button>
+            </div>
+            <form method="post" action="/settings/aws/add" id="awsEditForm">
+              <input type="hidden" name="old_acct_name" id="awsEdit_old_name" value="">
+              <input type="hidden" name="page" value="{{.AWSPage}}">
+              <div class="berry-input-group">
+                <label class="berry-label">名称</label>
+                <input name="acct_name" id="awsEdit_name" class="berry-input" required>
+              </div>
+              <div class="berry-input-group">
+                <label class="berry-label">Access Key</label>
+                <input name="acct_ak" id="awsEdit_ak" class="berry-input">
+              </div>
+              <div class="berry-input-group">
+                <label class="berry-label">Secret Key</label>
+                <input name="acct_sk" id="awsEdit_sk" type="text" class="berry-input" placeholder="输入 Secret Key">
+              </div>
+              <div class="berry-input-group">
+                <label class="berry-label">Proxy</label>
+                <input name="acct_proxy" id="awsEdit_proxy" class="berry-input" placeholder="http://user:pass@ip:port">
+              </div>
+              <div class="berry-input-group">
+                <label class="berry-label">默认 Region</label>
+                <div class="berry-select-wrapper">
+                  <select name="acct_region" id="awsEdit_region" class="berry-select">
+                    {{range .Regions}}
+                      <option value="{{.ID}}">{{.ID}} ({{.Name}})</option>
+                    {{end}}
+                  </select>
+                </div>
+              </div>
+              <div class="aws-modal__actions">
+                <button type="button" class="berry-btn berry-btn-outlined" onclick="closeAwsModal('awsEditModal')">关闭</button>
+                <button class="berry-btn berry-btn-primary">保存</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="aws-modal" id="awsQuotaModal" aria-hidden="true">
+          <div class="aws-modal__backdrop" onclick="closeAwsModal('awsQuotaModal')"></div>
+          <div class="aws-modal__panel aws-modal__panel--compact">
+            <div class="aws-modal__header">
+              <div class="aws-modal__title">测试配额</div>
+              <button type="button" class="aws-modal__close" onclick="closeAwsModal('awsQuotaModal')">×</button>
+            </div>
+            <form method="post" action="/settings/aws/quota" id="awsQuotaForm">
+              <input type="hidden" name="acct_name" id="awsQuota_acct_name" value="">
+              <input type="hidden" name="page" value="{{.AWSPage}}">
+              <div class="berry-input-group">
+                <label class="berry-label">账户</label>
+                <input id="awsQuota_account" class="berry-input" readonly>
+              </div>
+              <div class="berry-input-group">
+                <label class="berry-label">测试区域</label>
+                <div class="berry-select-wrapper">
+                  <select name="quota_region" id="awsQuota_region" class="berry-select">
+                    {{range .Regions}}
+                      <option value="{{.ID}}">{{.ID}} ({{.Name}})</option>
+                    {{end}}
+                  </select>
+                </div>
+              </div>
+              <div class="aws-modal__actions">
+                <button type="button" class="berry-btn berry-btn-outlined" onclick="closeAwsModal('awsQuotaModal')">关闭</button>
+                <button class="berry-btn berry-btn-primary">测试</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="aws-modal" id="awsNewbieModal" aria-hidden="true">
+          <div class="aws-modal__backdrop" onclick="closeAwsModal('awsNewbieModal')"></div>
+          <div class="aws-modal__panel">
+            <div class="aws-modal__header">
+              <div class="aws-modal__title">新手任务</div>
+              <button type="button" class="aws-modal__close" onclick="closeAwsModal('awsNewbieModal')">×</button>
+            </div>
+            <div class="berry-input-group">
+              <label class="berry-label">执行账户</label>
+              <input id="awsNewbie_account" class="berry-input" readonly>
+            </div>
+            <div style="font-size:12px;color:var(--berry-grey500);line-height:1.6;margin-bottom:10px">
+              自动在 <code style="background:var(--berry-grey100);padding:1px 6px;border-radius:4px;font-size:11px">us-east-1</code> 执行预算、EC2、Lambda、RDS 等新手任务流程，并输出实时日志。
+            </div>
+            <div style="background:#1e1e2d;color:#a2b0c7;padding:12px;border-radius:12px;font-family:'Roboto Mono',monospace;font-size:12px;height:280px;overflow-y:auto;line-height:1.6" id="awsNewbie_console">
+              等待开始任务...<br>
+            </div>
+            <div class="aws-modal__actions">
+              <button type="button" class="berry-btn berry-btn-outlined" onclick="closeAwsModal('awsNewbieModal')">关闭</button>
+              <button type="button" class="berry-btn berry-btn-primary" id="awsNewbie_start_btn" onclick="startNewbieTask()">
+                <span class="material-icons-round" style="font-size:18px">play_circle</span>
+                开始执行
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="aws-modal" id="awsRegionModal" aria-hidden="true">
+          <div class="aws-modal__backdrop" onclick="closeAwsModal('awsRegionModal')"></div>
+          <div class="aws-modal__panel">
+            <div class="aws-modal__header">
+              <div class="aws-modal__title">特殊区域一键激活</div>
+              <button type="button" class="aws-modal__close" onclick="closeAwsModal('awsRegionModal')">×</button>
+            </div>
+            <div class="berry-input-group">
+              <label class="berry-label">操作账户</label>
+              <input id="awsRegion_account" class="berry-input" readonly>
+            </div>
+            <div style="font-size:12px;color:var(--berry-grey500);line-height:1.7;margin-bottom:14px">
+              某些 AWS 区域需要先在账号层面手动激活。香港 <code style="background:var(--berry-grey100);padding:1px 6px;border-radius:4px;font-size:11px">ap-east-1</code> 已更新至 5.0 套餐系列，新增 xlarge / 2xlarge 规格；如账号尚未启用该区域，可在这里一键激活。
+            </div>
+            <div id="awsRegion_status_list" class="special-region-list"></div>
+            <form method="post" action="/settings/aws/regions/enable" id="awsRegionEnableForm">
+              <input type="hidden" name="acct_name" id="awsRegion_form_account" value="">
+              <input type="hidden" name="region_name" id="awsRegion_form_region" value="">
+              <input type="hidden" name="page" value="{{.AWSPage}}">
+            </form>
+            <div class="aws-modal__actions">
+              <button type="button" class="berry-btn berry-btn-outlined" onclick="closeAwsModal('awsRegionModal')">关闭</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    var newbieSelectedAccount = '';
+    var newbieEvtSource = null;
+    var specialRegionSelectedAccount = '';
+
+    function openAddModal() {
+      var form = document.getElementById('awsAddForm');
+      if (form) form.reset();
+      var modeInput = document.getElementById('awsAdd_mode');
+      if (modeInput) modeInput.value = '';
+      openAwsModal('awsAddModal');
+    }
+
+    function submitAwsAdd(mode) {
+      var modeInput = document.getElementById('awsAdd_mode');
+      if (modeInput) {
+        modeInput.value = mode || '';
+      }
+      return true;
+    }
+
+    function openEditModal(btn) {
+      document.getElementById('awsEdit_old_name').value = btn.dataset.name || '';
+      document.getElementById('awsEdit_name').value = btn.dataset.name || '';
+      document.getElementById('awsEdit_ak').value = btn.dataset.ak || '';
+      document.getElementById('awsEdit_sk').value = btn.dataset.sk || '';
+      document.getElementById('awsEdit_proxy').value = btn.dataset.proxy || '';
+      var region = btn.dataset.region || '';
+      var sel = document.getElementById('awsEdit_region');
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === region) {
+          sel.selectedIndex = i;
+          break;
+        }
+      }
+      openAwsModal('awsEditModal');
+    }
+
+    function openQuotaModal(btn) {
+      document.getElementById('awsQuota_acct_name').value = btn.dataset.name || '';
+      document.getElementById('awsQuota_account').value = btn.dataset.name || '';
+      var region = btn.dataset.region || '';
+      var sel = document.getElementById('awsQuota_region');
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === region) {
+          sel.selectedIndex = i;
+          break;
+        }
+      }
+      openAwsModal('awsQuotaModal');
+    }
+
+    function openNewbieModal(btn) {
+      newbieSelectedAccount = (btn && btn.dataset && btn.dataset.name) ? btn.dataset.name : '';
+      document.getElementById('awsNewbie_account').value = newbieSelectedAccount;
+      document.getElementById('awsNewbie_console').innerHTML = '等待开始任务...<br>';
+      document.getElementById('awsNewbie_start_btn').disabled = false;
+      openAwsModal('awsNewbieModal');
+    }
+
+    function openRegionModal(btn) {
+      specialRegionSelectedAccount = (btn && btn.dataset && btn.dataset.name) ? btn.dataset.name : '';
+      document.getElementById('awsRegion_account').value = specialRegionSelectedAccount;
+      document.getElementById('awsRegion_form_account').value = specialRegionSelectedAccount;
+      loadSpecialRegions();
+      openAwsModal('awsRegionModal');
+    }
+
+    function renderSpecialRegions(statusMap) {
+      var wrap = document.getElementById('awsRegion_status_list');
+      if (!wrap) return;
+      var rows = [];
+      {{range .SpecialRegions}}
+      (function() {
+        var regionId = '{{.ID}}';
+        var regionName = '{{.Name}}';
+        var rawStatus = statusMap && statusMap[regionId] ? statusMap[regionId] : 'UNKNOWN';
+        var statusText = rawStatus;
+        if (rawStatus === 'ENABLED') statusText = '已激活';
+        else if (rawStatus === 'ENABLING') statusText = '激活中';
+        else if (rawStatus === 'DISABLED') statusText = '未激活';
+        else if (rawStatus === 'ENABLED_BY_DEFAULT') statusText = '默认启用';
+
+        var badgeClass = 'berry-badge-grey';
+        if (rawStatus === 'ENABLED' || rawStatus === 'ENABLED_BY_DEFAULT') badgeClass = 'berry-badge-success';
+        else if (rawStatus === 'ENABLING') badgeClass = 'berry-badge-blue';
+        else if (rawStatus === 'DISABLED') badgeClass = 'berry-badge-orange';
+
+        var disabled = rawStatus === 'ENABLED' || rawStatus === 'ENABLED_BY_DEFAULT' || rawStatus === 'ENABLING';
+        rows.push(
+          '<div class="special-region-item">' +
+            '<div class="special-region-item__main">' +
+              '<div class="special-region-item__name">' + regionName + '</div>' +
+              '<div class="special-region-item__meta">' + regionId + '</div>' +
+            '</div>' +
+            '<div class="special-region-item__side">' +
+              '<span class="berry-badge ' + badgeClass + '">' + statusText + '</span>' +
+              '<button type="button" class="berry-btn berry-btn-primary berry-btn-sm" ' + (disabled ? 'disabled' : '') + ' onclick="submitEnableSpecialRegion(\'' + regionId + '\')">一键激活</button>' +
+            '</div>' +
+          '</div>'
+        );
+      })();
+      {{end}}
+
+      wrap.innerHTML = rows.join('');
+    }
+
+    function loadSpecialRegions() {
+      var wrap = document.getElementById('awsRegion_status_list');
+      if (!wrap) return;
+      if (!specialRegionSelectedAccount) {
+        wrap.innerHTML = '<div class="proxy-result-box proxy-result-box--warn" style="display:block">未选择账户。</div>';
+        return;
+      }
+
+      wrap.innerHTML = '<div class="proxy-result-box proxy-result-box--loading" style="display:block">正在读取区域激活状态...</div>';
+
+      fetch('/settings/aws/regions?account=' + encodeURIComponent(specialRegionSelectedAccount))
+        .then(function(res){ return res.json(); })
+        .then(function(data){
+          if (!data || !data.ok) {
+            wrap.innerHTML = '<div class="proxy-result-box proxy-result-box--error" style="display:block">' + ((data && data.error) ? data.error : '读取区域状态失败') + '</div>';
+            return;
+          }
+          renderSpecialRegions(data.regions || {});
+        })
+        .catch(function(err){
+          wrap.innerHTML = '<div class="proxy-result-box proxy-result-box--error" style="display:block">读取区域状态失败: ' + err + '</div>';
+        });
+    }
+
+    function submitEnableSpecialRegion(regionName) {
+      if (!specialRegionSelectedAccount || !regionName) return;
+      if (!confirm('确定为账户 ' + specialRegionSelectedAccount + ' 激活区域 ' + regionName + ' 吗？')) {
+        return;
+      }
+      document.getElementById('awsRegion_form_account').value = specialRegionSelectedAccount;
+      document.getElementById('awsRegion_form_region').value = regionName;
+      document.getElementById('awsRegionEnableForm').submit();
+    }
+
+    function startNewbieTask() {
+      var acct = newbieSelectedAccount;
+      if (!acct) {
+        alert('未选择账户');
+        return;
+      }
+      if (!confirm('确定要在账户 ' + acct + ' 执行新手任务吗？整个过程可能需要 15 分钟左右，期间请不要关闭页面。')) {
+        return;
+      }
+      var btn = document.getElementById('awsNewbie_start_btn');
+      var consoleEl = document.getElementById('awsNewbie_console');
+      btn.disabled = true;
+      consoleEl.innerHTML = '正在初始化任务引擎（账户: ' + acct + '）...<br>';
+
+      if (newbieEvtSource) {
+        newbieEvtSource.close();
+        newbieEvtSource = null;
+      }
+
+      fetch('/aws/newbie/run', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'account=' + encodeURIComponent(acct)
+      }).then(function(res){ return res.json(); }).then(function(data){
+        if (data.error) {
+          consoleEl.innerHTML += '<span style="color:#f44336">' + data.error + '</span><br>';
+          btn.disabled = false;
+          return;
+        }
+
+        newbieEvtSource = new EventSource('/aws/newbie/stream');
+        newbieEvtSource.onmessage = function(e) {
+          consoleEl.innerHTML += e.data + '<br>';
+          consoleEl.scrollTop = consoleEl.scrollHeight;
+          if (e.data.indexOf('所有流程执行完毕') !== -1 || e.data.indexOf('执行完毕') !== -1) {
+            newbieEvtSource.close();
+            newbieEvtSource = null;
+            btn.disabled = false;
+          }
+        };
+        newbieEvtSource.onerror = function() {
+          consoleEl.innerHTML += '<span style="color:#ffa726">[连接已断开或任务结束]</span><br>';
+          if (newbieEvtSource) {
+            newbieEvtSource.close();
+            newbieEvtSource = null;
+          }
+          btn.disabled = false;
+        };
+      }).catch(function(err){
+        consoleEl.innerHTML += '<span style="color:#f44336">请求失败: ' + err + '</span><br>';
+        btn.disabled = false;
+      });
+    }
+
+    function openAwsModal(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('is-open');
+      el.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeAwsModal(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('is-open');
+      el.setAttribute('aria-hidden', 'true');
+    }
+
+    document.addEventListener('click', function (e) {
+      var editBtn = e.target.closest('[data-aws-edit="1"]');
+      if (editBtn) {
+        openEditModal(editBtn);
+        return;
+      }
+      var quotaBtn = e.target.closest('[data-aws-quota="1"]');
+      if (quotaBtn) {
+        openQuotaModal(quotaBtn);
+        return;
+      }
+      var newbieBtn = e.target.closest('[data-aws-newbie="1"]');
+      if (newbieBtn) {
+        openNewbieModal(newbieBtn);
+        return;
+      }
+      var regionBtn = e.target.closest('[data-aws-region="1"]');
+      if (regionBtn) {
+        openRegionModal(regionBtn);
+      }
+    });
+    </script>
+  {{end}}
+
+  {{if eq .Tab "create"}}
+    <div class="berry-card berry-section">
+      <div class="berry-card-header">
+        <div class="berry-card-header-left">
+          <div class="icon-box icon-box-teal"><span class="material-icons-round">add_circle</span></div>
+          <div>
+            <h3>创建实例</h3>
+            <div class="subtitle">在当前多账号后台里统一创建 Lightsail 或 EC2 实例</div>
+          </div>
+        </div>
+        {{if .ActiveAccount}}
+          <span class="berry-badge berry-badge-blue">{{.ActiveAccount}}</span>
+        {{end}}
+      </div>
+      <div class="berry-card-body">
+        {{if not .Accounts}}
+          <div class="berry-empty">
+            <span class="material-icons-round">cloud_off</span>
+            <p>还没有可用的 AWS 账号，请先到“AWS 账户”里添加账号。</p>
+          </div>
+        {{else}}
+          <form method="post" action="/aws/create">
+            <input type="hidden" name="account" value="{{.ActiveAccount}}">
+            <input type="hidden" name="service" value="{{.CreateService}}">
+            <div class="service-switcher">
+              <a href="/?tab=create&service=lightsail&region={{.Region}}" class="service-switcher__item {{if eq .CreateService "lightsail"}}is-active{{end}}">Lightsail</a>
+              <a href="/?tab=create&service=ec2&region={{.Region}}" class="service-switcher__item {{if eq .CreateService "ec2"}}is-active{{end}}">EC2</a>
+            </div>
+
+            <div class="berry-row">
+              <div class="berry-col-6" style="flex:1 1 100%;max-width:100%">
+                <div class="berry-input-group">
+                  <label class="berry-label">代理检测</label>
+                  <div class="create-toolbar-actions">
+                    <button type="button" class="berry-btn berry-btn-outlined" onclick="runProxyCheck('{{.ActiveAccount}}', 'createProxyResult')" {{if or (not .ActiveAccount) (not .HasCreateCreds)}}disabled{{end}}>
+                      <span class="material-icons-round" style="font-size:18px">wifi_find</span>
+                      检测代理出口
+                    </button>
+                  </div>
+                  <div id="createProxyResult" class="proxy-result-box" style="display:none"></div>
+                </div>
+              </div>
+            </div>
+
+            {{if not .ActiveAccount}}
+              <div class="berry-alert berry-alert-warning">
+                <span class="material-icons-round" style="font-size:20px">verified_user</span>
+                请先在顶部选择并确认一个 AWS 账户，面板确认后才可以创建实例。
+              </div>
+            {{else if not .HasCreateCreds}}
+              <div class="berry-alert berry-alert-warning">
+                <span class="material-icons-round" style="font-size:20px">warning</span>
+                当前使用账户缺少 AK / SK，暂时不能创建实例。
+              </div>
+            {{end}}
+
+            <div class="berry-row">
+              <div class="berry-col-6">
+                <div class="berry-input-group">
+                  <label class="berry-label">Region</label>
+                  <div class="berry-select-wrapper">
+                    <select id="createRegionSelect" name="region" class="berry-select" onchange="navigateCreateRegion()">
+                      {{range .CreateRegions}}
+                        <option value="{{.ID}}" {{if eq .ID $.Region}}selected{{end}}>{{.ID}} ({{.Name}})</option>
+                      {{end}}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              {{if eq .CreateService "lightsail"}}
+              <div class="berry-col-6">
+                <div class="berry-input-group">
+                  <label class="berry-label">Availability Zone</label>
+                  <div class="berry-select-wrapper">
+                    <select name="az" class="berry-select">
+                      <option value="a">Zone A</option>
+                      <option value="b">Zone B</option>
+                      <option value="c">Zone C</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              {{else}}
+              <div class="berry-col-6">
+                <div class="berry-input-group">
+                  <label class="berry-label">实例数量</label>
+                  <input name="ec2_count" type="number" min="1" max="10" class="berry-input" value="{{.CreateEC2Count}}">
+                  <div class="berry-input-hint">默认 1 台，先从小批量创建更稳。</div>
+                </div>
+              </div>
+              {{end}}
+            </div>
+
+            {{if eq .CreateService "lightsail"}}
+            <div class="berry-row">
+              <div class="berry-col-6">
+                <div class="berry-input-group">
+                  <label class="berry-label">网络类型</label>
+                  <div class="berry-select-wrapper">
+                    <select name="ip_type" class="berry-select">
+                      {{range .IPTypes}}
+                        <option value="{{.ID}}" {{if eq .ID $.CreateIPType}}selected{{end}}>{{.Name}}</option>
+                      {{end}}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="berry-col-6">
+                <div class="berry-input-group">
+                  <label class="berry-label">安全组策略</label>
+                  <div class="berry-select-wrapper">
+                    <select name="enable_fw" class="berry-select">
+                      <option value="0" {{if not .CreateEnableFW}}selected{{end}}>默认端口策略</option>
+                      <option value="1" {{if .CreateEnableFW}}selected{{end}}>开放全部端口</option>
+                    </select>
+                  </div>
+                  <div class="berry-input-hint">开放全部端口风险较高，只在你确定需要时使用。</div>
+                </div>
+              </div>
+            </div>
+            {{else}}
+            <div class="berry-row">
+              <div class="berry-col-6">
+                <div class="berry-input-group">
+                  <label class="berry-label">AMI（系统）</label>
+                  <div class="berry-select-wrapper">
+                    <select name="ec2_ami" class="berry-select">
+                      {{range .EC2AMIs}}
+                        <option value="{{.ID}}" {{if eq .ID $.CreateEC2AMI}}selected{{end}}>{{.Name}}</option>
+                      {{end}}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="berry-col-6">
+                <div class="berry-input-group">
+                  <label class="berry-label">实例规格</label>
+                  <div class="berry-select-wrapper">
+                    <select name="ec2_type" class="berry-select">
+                      {{range .EC2Types}}
+                        <option value="{{.ID}}" {{if eq .ID $.CreateEC2Type}}selected{{end}}>{{.Name}}</option>
+                      {{end}}
+                    </select>
+                  </div>
+                  <div class="berry-input-hint">默认给出常用规格，避免自由输入带来的创建报错。</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="berry-row">
+              <div class="berry-col-6">
+                <div class="berry-input-group">
+                  <label class="berry-label">IPv6</label>
+                  <div class="berry-select-wrapper">
+                    <select name="ec2_ipv6" class="berry-select">
+                      <option value="0" {{if not .CreateEC2IPv6}}selected{{end}}>不启用 IPv6</option>
+                      <option value="1" {{if .CreateEC2IPv6}}selected{{end}}>启用 IPv6（自动处理子网）</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="berry-col-6">
+                <div class="berry-input-group">
+                  <label class="berry-label">Root 密码（可选）</label>
+                  <div class="password-field-row password-field-row--compact">
+                    <input id="createRootPwdInput" name="root_pwd" type="text" class="berry-input" value="{{.CreateRootPwd}}" placeholder="留空则不注入 root 密码" autocomplete="off" spellcheck="false" onclick="this.select()">
+                    <button type="button" class="berry-btn berry-btn-outlined berry-btn-sm" onclick="generateCreatePassword()">重生成</button>
+                    <button type="button" class="berry-btn berry-btn-secondary berry-btn-sm" onclick="copyCreatePassword()">复制</button>
+                  </div>
+                  <div class="berry-input-hint">默认已随机生成一组密码；你可以直接修改，EC2 不需要的话也可以清空。</div>
+                </div>
+              </div>
+            </div>
+            {{end}}
+
+            {{if eq .CreateService "lightsail"}}
+            <div class="berry-row">
+              <div class="berry-col-6">
+                <div class="berry-input-group">
+                  <label class="berry-label">Blueprint</label>
+                  <div class="berry-select-wrapper">
+                    <select name="blueprint_id" class="berry-select">
+                      {{range .Blueprints}}
+                        <option value="{{.ID}}" {{if eq .ID $.CreateBlueprint}}selected{{end}}>{{.Name}}</option>
+                      {{end}}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="berry-col-6">
+                <div class="berry-input-group">
+                  <label class="berry-label">Bundle</label>
+                  <div class="berry-select-wrapper">
+                    <select name="bundle_id" class="berry-select">
+                      {{range .Bundles}}
+                        <option value="{{.ID}}" {{if eq .ID $.CreateBundle}}selected{{end}}>{{.Name}}</option>
+                      {{end}}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="berry-input-group">
+              <label class="berry-label">Root 密码</label>
+              <div class="password-field-row password-field-row--compact">
+                <input id="createRootPwdInput" name="root_pwd" type="text" class="berry-input" value="{{.CreateRootPwd}}" placeholder="创建后会通过 user-data 注入 root 密码" autocomplete="off" spellcheck="false" onclick="this.select()" required>
+                <button type="button" class="berry-btn berry-btn-outlined berry-btn-sm" onclick="generateCreatePassword()">重生成</button>
+                <button type="button" class="berry-btn berry-btn-secondary berry-btn-sm" onclick="copyCreatePassword()">复制</button>
+              </div>
+              <div class="berry-input-hint">默认已经随机生成；你可以手动改。实例名会自动生成，创建成功后会自动跳到“实例管理”页。</div>
+            </div>
+            {{end}}
+
+            <div class="create-toolbar-actions">
+              <button class="berry-btn berry-btn-primary" {{if or (not .ActiveAccount) (not .HasCreateCreds)}}disabled{{end}}>
+                <span class="material-icons-round" style="font-size:18px">rocket_launch</span>
+                {{if eq .CreateService "ec2"}}立即创建 EC2{{else}}立即创建 Lightsail{{end}}
+              </button>
+              {{if .ActiveAccount}}
+                <a href="/?tab=manage&service={{.CreateService}}&region={{.Region}}" class="berry-btn berry-btn-outlined">
+                  <span class="material-icons-round" style="font-size:18px">dns</span>
+                  去实例管理
+                </a>
+              {{end}}
+            </div>
+          </form>
+        {{end}}
+      </div>
+    </div>
+  {{end}}
+
+  {{if eq .Tab "manage"}}
+    <div class="berry-card berry-section">
+      <div class="berry-card-header">
+        <div class="berry-card-header-left">
+          <div class="icon-box icon-box-blue"><span class="material-icons-round">dns</span></div>
+          <div>
+            <h3>实例管理</h3>
+            <div class="subtitle">查看并管理 Lightsail 或 EC2 实例</div>
+          </div>
+        </div>
+        {{if .ActiveAccount}}
+          <span class="berry-badge berry-badge-purple">{{.ActiveAccount}}</span>
+        {{end}}
+      </div>
+      <div class="berry-card-body">
+        {{if not .Accounts}}
+          <div class="berry-empty">
+            <span class="material-icons-round">dns</span>
+            <p>还没有可管理的 AWS 账号，请先添加账号。</p>
+          </div>
+        {{else}}
+          <div class="service-switcher" style="margin-bottom:14px">
+            <a href="/?tab=manage&service=lightsail&region={{.Region}}" class="service-switcher__item {{if eq .ManageService "lightsail"}}is-active{{end}}">Lightsail</a>
+            <a href="/?tab=manage&service=ec2&region={{.Region}}" class="service-switcher__item {{if eq .ManageService "ec2"}}is-active{{end}}">EC2</a>
+          </div>
+          <div class="manage-toolbar">
+            <div class="manage-toolbar__item">
+              <label class="berry-label">Region</label>
+              <div class="berry-select-wrapper">
+                <select id="manageRegionSelect" class="berry-select" onchange="navigateManageRegion()">
+                  {{range .ManageRegions}}
+                    <option value="{{.ID}}" {{if eq .ID $.Region}}selected{{end}}>{{.ID}} ({{.Name}})</option>
+                  {{end}}
+                </select>
+              </div>
+            </div>
+            <div class="manage-toolbar__actions">
+                <button type="button" class="berry-btn berry-btn-outlined berry-btn-sm" onclick="runProxyCheck('{{.ActiveAccount}}', 'manageProxyResult')" {{if or (not .ActiveAccount) (not .HasManageCreds)}}disabled{{end}}>
+                <span class="material-icons-round" style="font-size:18px">wifi_find</span>
+                检测代理出口
+              </button>
+              <form method="post" action="/aws/refresh" style="margin:0">
+                <input type="hidden" name="account" value="{{.ActiveAccount}}">
+                <input type="hidden" name="service" value="{{.ManageService}}">
+                <input type="hidden" name="region" value="{{.Region}}">
+                <button class="berry-btn berry-btn-secondary berry-btn-sm" {{if or (not .ActiveAccount) (not .HasManageCreds)}}disabled{{end}}>
+                  <span class="material-icons-round" style="font-size:18px">refresh</span>
+                  刷新列表
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div id="manageProxyResult" class="proxy-result-box" style="display:none;margin-bottom:16px"></div>
+
+          {{if not .ActiveAccount}}
+            <div class="berry-alert berry-alert-warning">
+              <span class="material-icons-round" style="font-size:20px">verified_user</span>
+              请先在顶部选择并确认一个 AWS 账户，面板确认后才可以管理实例。
+            </div>
+          {{else if not .HasManageCreds}}
+            <div class="berry-alert berry-alert-warning">
+              <span class="material-icons-round" style="font-size:20px">warning</span>
+              当前使用账户缺少 AK / SK，暂时不能管理实例。
+            </div>
+          {{else if and (eq .ManageService "lightsail") (not .Instances)}}
+            <div class="berry-empty">
+              <span class="material-icons-round">inventory_2</span>
+              <p>当前账号在这个区域下还没有 Lightsail 实例，或者实例列表暂时为空。</p>
+            </div>
+          {{else if and (eq .ManageService "ec2") (not .EC2Instances)}}
+            <div class="berry-empty">
+              <span class="material-icons-round">inventory_2</span>
+              <p>当前账号在这个区域下还没有 EC2 实例，或者实例列表暂时为空。</p>
+            </div>
+          {{else}}
+            <div class="manage-instance-grid">
+              {{if eq .ManageService "lightsail"}}
+              {{range .Instances}}
+                <div class="manage-instance-card">
+                  <div class="manage-instance-card__top">
+                    <div>
+                      <div class="manage-instance-card__name">{{.Name}}</div>
+                      <div class="manage-instance-card__meta">
+                        <span class="berry-badge {{if eq .State "running"}}berry-badge-success{{else}}berry-badge-grey{{end}}">{{.State}}</span>
+                        <span class="berry-badge berry-badge-grey">{{.BundleID}}</span>
+                        {{if .Zone}}<span class="berry-badge berry-badge-orange">{{.Zone}}</span>{{end}}
+                      </div>
+                    </div>
+                    {{if .Created}}
+                      <div class="manage-instance-created">{{.Created}}</div>
+                    {{end}}
+                  </div>
+
+                  <div class="manage-instance-ips">
+                    <div class="manage-instance-ip">
+                      <span class="manage-instance-ip__label">IPv4</span>
+                      <span class="manage-instance-ip__value">{{if .PublicIPv4}}{{.PublicIPv4}}{{else}}-{{end}}</span>
+                      {{if .PublicIPv4}}
+                        <button type="button" class="manage-copy-btn" onclick="copyText('{{.PublicIPv4}}')">
+                          <span class="material-icons-round" style="font-size:16px">content_copy</span>
+                        </button>
+                      {{end}}
+                    </div>
+                    <div class="manage-instance-ip">
+                      <span class="manage-instance-ip__label">IPv6</span>
+                      <span class="manage-instance-ip__value">{{if .PublicIPv6}}{{.PublicIPv6}}{{else}}-{{end}}</span>
+                      {{if .PublicIPv6}}
+                        <button type="button" class="manage-copy-btn" onclick="copyText('{{.PublicIPv6}}')">
+                          <span class="material-icons-round" style="font-size:16px">content_copy</span>
+                        </button>
+                      {{end}}
+                    </div>
+                    {{if .StaticIPv4}}
+                      <div class="manage-instance-ip manage-instance-ip--static manage-instance-ip--wide">
+                        <span class="manage-instance-ip__label">Static IP</span>
+                        <span class="manage-instance-ip__value">{{.StaticIPv4}}</span>
+                        <button type="button" class="manage-copy-btn" onclick="copyText('{{.StaticIPv4}}')">
+                          <span class="material-icons-round" style="font-size:16px">content_copy</span>
+                        </button>
+                      </div>
+                    {{end}}
+                  </div>
+
+                  <div class="manage-instance-actions">
+                    <form method="post" action="/aws/reboot">
+                      <input type="hidden" name="account" value="{{$.ActiveAccount}}">
+                      <input type="hidden" name="service" value="lightsail">
+                      <input type="hidden" name="region" value="{{$.Region}}">
+                      <input type="hidden" name="instance" value="{{.Name}}">
+                      <button class="berry-btn berry-btn-outlined berry-btn-sm">重启</button>
+                    </form>
+                    <form method="post" action="/aws/openall">
+                      <input type="hidden" name="account" value="{{$.ActiveAccount}}">
+                      <input type="hidden" name="service" value="lightsail">
+                      <input type="hidden" name="region" value="{{$.Region}}">
+                      <input type="hidden" name="instance" value="{{.Name}}">
+                      <button class="berry-btn berry-btn-warn-outlined berry-btn-sm">开放全端口</button>
+                    </form>
+                    <form method="post" action="/aws/swapip">
+                      <input type="hidden" name="account" value="{{$.ActiveAccount}}">
+                      <input type="hidden" name="service" value="lightsail">
+                      <input type="hidden" name="region" value="{{$.Region}}">
+                      <input type="hidden" name="instance" value="{{.Name}}">
+                      <button class="berry-btn berry-btn-blue berry-btn-sm" {{if not .PublicIPv4}}disabled{{end}}>换静态 IP</button>
+                    </form>
+                    <form method="post" action="/aws/delete" onsubmit="return confirm('确定删除实例 {{.Name}} 吗？该操作不可恢复。');">
+                      <input type="hidden" name="account" value="{{$.ActiveAccount}}">
+                      <input type="hidden" name="service" value="lightsail">
+                      <input type="hidden" name="region" value="{{$.Region}}">
+                      <input type="hidden" name="instance" value="{{.Name}}">
+                      <button class="berry-btn berry-btn-error berry-btn-sm">删除</button>
+                    </form>
+                  </div>
+                </div>
+              {{end}}
+              {{else}}
+              {{range .EC2Instances}}
+                <div class="manage-instance-card manage-instance-card--ec2">
+                  <div class="manage-instance-card__top">
+                    <div>
+                      <div class="manage-instance-card__name">{{if .Name}}{{.Name}}{{else}}{{.ID}}{{end}}</div>
+                      <div class="manage-instance-card__meta">
+                        <span class="berry-badge {{if eq .State "running"}}berry-badge-success{{else}}berry-badge-grey{{end}}">{{.State}}</span>
+                        <span class="berry-badge berry-badge-grey">{{.InstanceType}}</span>
+                        {{if .Zone}}<span class="berry-badge berry-badge-orange">{{.Zone}}</span>{{end}}
+                      </div>
+                    </div>
+                    {{if .LaunchedAt}}
+                      <div class="manage-instance-created">{{.LaunchedAt}}</div>
+                    {{end}}
+                  </div>
+
+                  <div class="manage-instance-ips">
+                    <div class="manage-instance-ip manage-instance-ip--wide">
+                      <span class="manage-instance-ip__label">Instance ID</span>
+                      <span class="manage-instance-ip__value">{{.ID}}</span>
+                      <button type="button" class="manage-copy-btn" onclick="copyText('{{.ID}}')">
+                        <span class="material-icons-round" style="font-size:16px">content_copy</span>
+                      </button>
+                    </div>
+                    <div class="manage-instance-ip">
+                      <span class="manage-instance-ip__label">IPv4</span>
+                      <span class="manage-instance-ip__value">{{if .PublicIPv4}}{{.PublicIPv4}}{{else}}-{{end}}</span>
+                      {{if .PublicIPv4}}
+                        <button type="button" class="manage-copy-btn" onclick="copyText('{{.PublicIPv4}}')">
+                          <span class="material-icons-round" style="font-size:16px">content_copy</span>
+                        </button>
+                      {{end}}
+                    </div>
+                    <div class="manage-instance-ip">
+                      <span class="manage-instance-ip__label">Private</span>
+                      <span class="manage-instance-ip__value">{{if .PrivateIPv4}}{{.PrivateIPv4}}{{else}}-{{end}}</span>
+                      {{if .PrivateIPv4}}
+                        <button type="button" class="manage-copy-btn" onclick="copyText('{{.PrivateIPv4}}')">
+                          <span class="material-icons-round" style="font-size:16px">content_copy</span>
+                        </button>
+                      {{end}}
+                    </div>
+                    {{if .PublicIPv6}}
+                      <div class="manage-instance-ip manage-instance-ip--wide">
+                        <span class="manage-instance-ip__label">IPv6</span>
+                        <span class="manage-instance-ip__value">{{.PublicIPv6}}</span>
+                        <button type="button" class="manage-copy-btn" onclick="copyText('{{.PublicIPv6}}')">
+                          <span class="material-icons-round" style="font-size:16px">content_copy</span>
+                        </button>
+                      </div>
+                    {{end}}
+                  </div>
+
+                  <div class="manage-instance-actions">
+                    <form method="post" action="/aws/ec2/start">
+                      <input type="hidden" name="account" value="{{$.ActiveAccount}}">
+                      <input type="hidden" name="region" value="{{$.Region}}">
+                      <input type="hidden" name="instance" value="{{.ID}}">
+                      <button class="berry-btn berry-btn-success berry-btn-sm" {{if ne .State "stopped"}}disabled{{end}}>启动</button>
+                    </form>
+                    <form method="post" action="/aws/ec2/stop">
+                      <input type="hidden" name="account" value="{{$.ActiveAccount}}">
+                      <input type="hidden" name="region" value="{{$.Region}}">
+                      <input type="hidden" name="instance" value="{{.ID}}">
+                      <button class="berry-btn berry-btn-outlined berry-btn-sm" {{if ne .State "running"}}disabled{{end}}>停止</button>
+                    </form>
+                    <form method="post" action="/aws/ec2/reboot">
+                      <input type="hidden" name="account" value="{{$.ActiveAccount}}">
+                      <input type="hidden" name="region" value="{{$.Region}}">
+                      <input type="hidden" name="instance" value="{{.ID}}">
+                      <button class="berry-btn berry-btn-blue berry-btn-sm" {{if ne .State "running"}}disabled{{end}}>重启</button>
+                    </form>
+                    <form method="post" action="/aws/ec2/openall">
+                      <input type="hidden" name="account" value="{{$.ActiveAccount}}">
+                      <input type="hidden" name="region" value="{{$.Region}}">
+                      <input type="hidden" name="instance" value="{{.ID}}">
+                      <button class="berry-btn berry-btn-warn-outlined berry-btn-sm">全端口</button>
+                    </form>
+                    <form method="post" action="/aws/ec2/terminate" onsubmit="return confirm('确定终止 EC2 实例 {{if .Name}}{{.Name}}{{else}}{{.ID}}{{end}} 吗？');">
+                      <input type="hidden" name="account" value="{{$.ActiveAccount}}">
+                      <input type="hidden" name="region" value="{{$.Region}}">
+                      <input type="hidden" name="instance" value="{{.ID}}">
+                      <button class="berry-btn berry-btn-error berry-btn-sm" {{if eq .State "shutting-down"}}disabled{{end}}>终止</button>
+                    </form>
+                  </div>
+                </div>
+              {{end}}
+              {{end}}
+            </div>
+          {{end}}
+        {{end}}
+      </div>
+    </div>
+
+  {{end}}
+
+  <script>
+  function navigateCreateRegion() {
+    var region = document.getElementById('createRegionSelect');
+    if (!region) return;
+    window.location.href = '/?tab=create&service={{.CreateService}}&region=' + encodeURIComponent(region.value);
+  }
+
+  function navigateManageRegion() {
+    var region = document.getElementById('manageRegionSelect');
+    if (!region) return;
+    window.location.href = '/?tab=manage&service={{.ManageService}}&region=' + encodeURIComponent(region.value);
+  }
+
+  async function runProxyCheck(account, targetId) {
+    var result = document.getElementById(targetId);
+    if (!result) return;
+    if (!account) {
+      result.style.display = 'block';
+      result.className = 'proxy-result-box proxy-result-box--warn';
+      result.textContent = '请先选择一个账号。';
+      return;
+    }
+
+    result.style.display = 'block';
+    result.className = 'proxy-result-box proxy-result-box--loading';
+    result.textContent = '正在检测代理出口，请稍候...';
+
+    try {
+      var resp = await fetch('/aws/proxy/check?account=' + encodeURIComponent(account));
+      var data = await resp.json();
+      if (data && data.ok) {
+        result.className = 'proxy-result-box proxy-result-box--ok';
+        result.innerHTML = '<strong>出口检测成功</strong><br>IP: ' + (data.ip || '-') + '<br>ASN: ' + (data.as || 'N/A');
+        return;
+      }
+
+      result.className = 'proxy-result-box proxy-result-box--error';
+      result.textContent = (data && data.error) ? data.error : '代理检测失败';
+    } catch (err) {
+      result.className = 'proxy-result-box proxy-result-box--error';
+      result.textContent = '代理检测失败: ' + err;
+    }
+  }
+
+  async function copyText(text) {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      var textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+  }
+
+  function randomCreatePassword(length) {
+    var size = length || 16;
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#_-';
+    var out = '';
+    if (window.crypto && window.crypto.getRandomValues) {
+      var bytes = new Uint8Array(size);
+      window.crypto.getRandomValues(bytes);
+      for (var i = 0; i < size; i++) {
+        out += chars.charAt(bytes[i] % chars.length);
+      }
+      return out;
+    }
+    for (var j = 0; j < size; j++) {
+      out += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return out;
+  }
+
+  function generateCreatePassword() {
+    var input = document.getElementById('createRootPwdInput');
+    if (!input) return;
+    input.value = randomCreatePassword(16);
+  }
+
+  function copyCreatePassword() {
+    var input = document.getElementById('createRootPwdInput');
+    if (!input || !input.value) return;
+    copyText(input.value);
+  }
+  </script>
+
+</div>
+
+<style>
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.aws-account-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--berry-grey200);
+  background: linear-gradient(180deg, #fcfdff 0%, #f6f9fc 100%);
+}
+
+.aws-account-toolbar__summary {
+  font-size: 12px;
+  color: var(--berry-grey700);
+  font-weight: 600;
+}
+
+.aws-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aws-account-pager {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--berry-grey600);
+  flex-wrap: wrap;
+}
+
+.aws-account-pager a {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--berry-grey200);
+  color: var(--berry-grey700);
+  text-decoration: none;
+  background: linear-gradient(180deg, #fff 0%, #f7f9fc 100%);
+  font-weight: 600;
+}
+
+.aws-account-pager a.is-disabled {
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.aws-account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.aws-account-card {
+  border: 1px solid var(--berry-grey200);
+  border-radius: 18px;
+  padding: 16px;
+  background: linear-gradient(180deg, #fff 0%, #fbfbff 100%);
+  box-shadow: 0 8px 24px rgba(20, 24, 40, 0.06);
+}
+
+.aws-account-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.aws-account-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--berry-dark-main);
+  margin-bottom: 6px;
+}
+
+.aws-account-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aws-account-meta {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--berry-grey600);
+  margin-bottom: 12px;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.aws-quota-form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.aws-quota-result {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.aws-quota-metric {
+  padding: 12px;
+  border-radius: 14px;
+  background: #f8f8fb;
+  border: 1px solid var(--berry-grey200);
+}
+
+.aws-quota-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--berry-grey500);
+  margin-bottom: 4px;
+}
+
+.aws-quota-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--berry-dark-main);
+  line-height: 1.1;
+}
+
+.aws-quota-detail,
+.aws-quota-updated,
+.aws-quota-empty {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--berry-grey500);
+}
+
+.aws-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.aws-table-wrap {
+  margin-bottom: 16px;
+  border: 1px solid var(--berry-grey200);
+  border-radius: 10px;
+  overflow-x: auto;
+  background: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+.aws-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  background: transparent;
+}
+
+.aws-table th,
+.aws-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--berry-grey100);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.aws-table th {
+  font-size: 11px;
+  color: #627289;
+  background: linear-gradient(180deg, #fafcff 0%, #f1f5fa 100%);
+  font-weight: 700;
+  border-bottom-color: var(--berry-grey200);
+  letter-spacing: 0.2px;
+}
+
+.aws-table--compact tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.aws-table tbody tr:hover {
+  background: #f8fbff;
+}
+
+.aws-account-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.aws-account-inline__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--berry-primary-main);
+  background: rgba(30,159,255,0.10);
+  border: 1px solid rgba(30,159,255,0.14);
+  flex-shrink: 0;
+}
+
+.aws-account-inline__icon .material-icons-round {
+  font-size: 16px;
+}
+
+.aws-account-inline__main {
+  min-width: 0;
+}
+
+.aws-table-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--berry-dark-main);
+  margin-bottom: 2px;
+  line-height: 1.3;
+}
+
+.aws-table-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--berry-grey500);
+  font-family: 'Roboto Mono', monospace;
+}
+
+.aws-cell-stack {
+  display: flex;
+  align-items: center;
+  min-height: 100%;
+}
+
+.aws-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.aws-row-actions--compact .berry-btn {
+  min-width: 32px;
+  width: 32px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.aws-row-actions--compact .material-icons-round {
+  margin: 0;
+}
+
+.aws-quota-inline {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.aws-quota-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.aws-quota-pill--ok {
+  background: #d9f5e4;
+  color: #146c2e;
+}
+
+.aws-quota-pill--soft {
+  background: #e8f1ff;
+  color: #0d4db3;
+}
+
+.aws-quota-empty-inline {
+  font-size: 11px;
+  color: var(--berry-grey500);
+}
+
+.aws-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 1200;
+}
+
+.aws-modal.is-open {
+  display: block;
+}
+
+.aws-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 20, 30, 0.45);
+}
+
+.aws-modal__panel {
+  position: relative;
+  width: min(560px, calc(100vw - 24px));
+  margin: 8vh auto 0;
+  background: #fff;
+  border-radius: 10px;
+  padding: 18px;
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(23, 39, 60, 0.2);
+  border: 1px solid #dbe3ee;
+}
+
+.aws-modal__panel--compact {
+  width: min(520px, calc(100vw - 24px));
+}
+
+.aws-modal__panel > form {
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.aws-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.aws-modal__title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--berry-dark-main);
+}
+
+.aws-modal__close {
+  border: 0;
+  background: transparent;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--berry-grey500);
+}
+
+.aws-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 12px;
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, #ffffff 36%);
+  border-top: 1px solid var(--berry-grey200);
+}
+
+.special-region-list {
+  display: grid;
+  gap: 10px;
+}
+
+.special-region-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 14px;
+  border: 1px solid var(--berry-grey200);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff 0%, #f9fbfe 100%);
+}
+
+.special-region-item__main {
+  min-width: 0;
+}
+
+.special-region-item__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--berry-dark-main);
+}
+
+.special-region-item__meta {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--berry-grey500);
+  font-family: 'Roboto Mono', monospace;
+}
+
+.special-region-item__side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.service-switcher {
+  display: inline-flex;
+  gap: 0;
+  padding: 4px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background: var(--berry-grey100);
+  border: 1px solid var(--berry-grey200);
+}
+
+.service-switcher__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--berry-grey700);
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.service-switcher__item:hover {
+  color: var(--berry-primary-main);
+  background: rgba(30,159,255,0.06);
+}
+
+.service-switcher__item.is-active {
+  color: var(--berry-paper);
+  background: var(--gc-blue);
+  box-shadow: 0 1px 3px rgba(26,115,232,0.3);
+}
+
+.create-toolbar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.password-field-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.password-field-row .berry-input {
+  flex: 1 1 auto;
+}
+
+.password-field-row--compact {
+  display: grid;
+  grid-template-columns: minmax(220px, 460px) auto auto;
+  justify-content: start;
+}
+
+.password-field-row--compact .berry-input {
+  width: 100%;
+  min-width: 0;
+  font-family: 'Roboto Mono', monospace;
+  letter-spacing: 0.2px;
+}
+
+.password-field-row--compact .berry-btn {
+  white-space: nowrap;
+  min-width: 72px;
+}
+
+.proxy-result-box {
+  border-radius: 8px;
+  padding: 11px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  border: 1px solid transparent;
+  background: #f8fafc;
+  color: var(--berry-grey700);
+}
+
+.proxy-result-box--loading {
+  background: rgba(33,150,243,0.08);
+  color: #1565c0;
+  border-color: rgba(33,150,243,0.16);
+}
+
+.proxy-result-box--ok {
+  background: rgba(0,200,83,0.08);
+  color: #0c6c2b;
+  border-color: rgba(0,200,83,0.16);
+}
+
+.proxy-result-box--warn {
+  background: rgba(255,152,0,0.08);
+  color: #b25b00;
+  border-color: rgba(255,152,0,0.16);
+}
+
+.proxy-result-box--error {
+  background: rgba(244,67,54,0.08);
+  color: #c62828;
+  border-color: rgba(244,67,54,0.16);
+}
+
+.manage-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--berry-grey200);
+  border-radius: 8px;
+  background: var(--berry-paper);
+}
+
+.manage-toolbar__item {
+  min-width: 0;
+}
+
+.manage-toolbar__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.manage-instance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 10px;
+}
+
+.manage-instance-card {
+  border: 1px solid var(--berry-grey200);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--berry-paper);
+  box-shadow: 0 1px 3px rgba(60,64,67,0.08);
+  transition: box-shadow 0.15s;
+}
+.manage-instance-card:hover {
+  box-shadow: 0 2px 8px rgba(60,64,67,0.12);
+}
+
+.manage-instance-card--ec2 {
+  border-color: rgba(26,115,232,0.2);
+}
+
+.manage-instance-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.manage-instance-card__name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--berry-dark-main);
+  margin-bottom: 5px;
+  word-break: break-word;
+}
+
+.manage-instance-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.manage-instance-created {
+  font-size: 10px;
+  color: var(--berry-grey500);
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+.manage-instance-ips {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.manage-instance-ip {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 8px;
+  align-items: start;
+  padding: 7px 9px;
+  border: 1px solid var(--berry-grey200);
+  border-radius: 6px;
+  background: var(--berry-paper);
+}
+
+.manage-instance-ip--static {
+  background: var(--gc-blue-light);
+  border-color: rgba(26,115,232,0.18);
+}
+
+.manage-instance-ip--wide {
+  grid-column: 1 / -1;
+}
+
+.manage-instance-ip__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--berry-grey500);
+  line-height: 1.6;
+}
+
+.manage-instance-ip__value {
+  font-size: 11px;
+  color: var(--berry-dark-main);
+  font-family: 'Roboto Mono', monospace;
+  word-break: break-all;
+  line-height: 1.45;
+}
+
+.manage-copy-btn {
+  border: 0;
+  background: transparent;
+  color: var(--berry-grey500);
+  cursor: pointer;
+  padding: 0;
+}
+
+.manage-copy-btn:hover {
+  color: var(--berry-primary-main);
+}
+
+.manage-instance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.manage-instance-actions form {
+  margin: 0;
+}
+
+.manage-instance-actions .berry-btn {
+  min-height: 30px;
+  font-size: 12px;
+}
+
+.manage-instance-card--ec2 .manage-instance-card__top {
+  margin-bottom: 8px;
+}
+
+.manage-instance-card--ec2 .manage-instance-ips {
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.manage-instance-card--ec2 .manage-instance-ip {
+  padding: 7px 8px;
+  grid-template-columns: 60px 1fr auto;
+}
+
+.manage-instance-card--ec2 .manage-instance-actions {
+  gap: 6px;
+}
+
+.manage-instance-card--ec2 .manage-instance-actions form {
+  flex: 1 1 calc(33.333% - 6px);
+  min-width: 88px;
+}
+
+.manage-instance-card--ec2 .manage-instance-actions .berry-btn {
+  width: 100%;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+@media (max-width: 960px) {
+  .manage-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .manage-toolbar__actions {
+    justify-content: flex-start;
+  }
+
+  .special-region-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .special-region-item__side {
+    justify-content: flex-start;
+  }
+
+  .manage-instance-ips {
+    grid-template-columns: 1fr;
+  }
+
+  .manage-instance-ip--wide {
+    grid-column: auto;
+  }
+
+  .manage-instance-card--ec2 .manage-instance-actions form {
+    flex-basis: calc(50% - 6px);
+  }
+
+  .password-field-row {
+    flex-wrap: wrap;
+  }
+
+  .password-field-row .berry-btn {
+    flex: 1 1 calc(50% - 4px);
+  }
+
+  .password-field-row--compact {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .password-field-row--compact .berry-input {
+    grid-column: 1 / -1;
+  }
+}
+</style>
+{{end}}
+
+
+
+
+
+
